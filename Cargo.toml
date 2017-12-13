@@ -1,7 +1,20 @@
 [package]
-name = "nson"
-version = "0.1.0"
-authors = ["dangcheng <dangcheng@hotmail.com>"]
+name          = "nson"
+version       = "0.1.0"
+license       = "MIT"
+authors       = ["dangcheng <dangcheng@hotmail.com>"]
+description   = "NSON is a lightweight data-interchange format like JSON or BSON"
+documentation = "https://docs.rs/queen-io"
+homepage      = "https://github.com/mitum/queen-io"
+repository    = "https://github.com/mitum/queen-io"
+readme        = "README.md"
+keywords      = ["nson"]
+exclude       = [
+  ".gitignore",
+  ".travis.yml",
+  "deploy.sh",
+  "test/**/*",
+]
 
 [dependencies]
 linked-hash-map = "0.5"
