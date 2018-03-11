@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use nson::Nson;
 use nson::Array;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Error {
     NotPresent,
     UnexpectedType,
