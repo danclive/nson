@@ -1,5 +1,6 @@
 use std::fmt;
 use std::ops::{Deref, DerefMut};
+use std::hash::{Hash, Hasher};
 
 use chrono::{DateTime, Utc, Timelike};
 use chrono::offset::TimeZone;
@@ -7,6 +8,7 @@ use chrono::offset::TimeZone;
 use object::Object;
 use spec::ElementType;
 use util::hex::{ToHex, FromHex};
+use encode;
 
 #[derive(Clone, PartialEq)]
 pub enum Nson {
@@ -24,6 +26,8 @@ pub enum Nson {
     TimeStamp(i64),
     UTCDatetime(DateTime<Utc>),
 }
+
+impl Eq for Nson {}
 
 pub type Array = Vec<Nson>;
 
@@ -242,6 +246,14 @@ impl Nson {
         }
 
         Nson::Object(values)
+    }
+}
+
+impl Hash for Nson {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut buf: Vec<u8> = Vec::new();
+        let _ = encode::encode_nson(&mut buf, "", self);
+        buf.hash(state);
     }
 }
 

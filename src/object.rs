@@ -15,7 +15,7 @@ pub enum Error {
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Object {
     inner: LinkedHashMap<String, Nson>
 }

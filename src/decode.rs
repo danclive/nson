@@ -1,5 +1,5 @@
 use std::{io, error, fmt, string};
-use std::io::Read;
+use std::io::{Read, Cursor};
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use chrono::Utc;
@@ -255,4 +255,12 @@ pub fn from_nson<'de, T>(bson: Nson) -> DecodeResult<T>
 {
     let de = Decoder::new(bson);
     Deserialize::deserialize(de)
+}
+
+pub fn from_slice<'de, T>(slice: &[u8]) -> DecodeResult<T>
+    where T: Deserialize<'de>
+{
+    let mut reader = Cursor::new(slice);
+    let object = decode_object(&mut reader)?;
+    from_nson(Nson::Object(object))
 }

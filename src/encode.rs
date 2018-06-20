@@ -132,7 +132,7 @@ fn encode_array<W>(writer: &mut W, arr: &[Nson]) -> EncodeResult<()>
     Ok(())
 }
 
-fn encode_nson<W>(writer: &mut W, key: &str, val: &Nson) -> EncodeResult<()>
+pub fn encode_nson<W>(writer: &mut W, key: &str, val: &Nson) -> EncodeResult<()>
     where W: Write + ?Sized
 {
     writer.write_u8(val.element_type() as u8)?;
@@ -186,4 +186,18 @@ pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Nson>
 {
     let ser = Encoder::new();
     value.serialize(ser)
+}
+
+pub fn to_vec<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
+    where T: Serialize
+{
+    let nson = to_nson(value)?;
+
+    if let Nson::Object(object) = nson {
+        let mut buf: Vec<u8> = Vec::new();
+        encode_object(&mut buf, &object)?;
+        return Ok(buf)
+    }
+
+    Err(EncodeError::InvalidMapKeyType(nson))
 }
