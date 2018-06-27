@@ -2,6 +2,7 @@ use std::fmt;
 use std::vec;
 use std::result;
 use std::marker::PhantomData;
+use std::{i32, u32};
 
 use serde::de::{self, Deserialize, Deserializer, Visitor, MapAccess, SeqAccess, VariantAccess,
                 DeserializeSeed, EnumAccess};
@@ -96,28 +97,28 @@ impl<'de> Visitor<'de> for NsonVisitor {
     fn visit_i8<E>(self, value: i8) -> Result<Nson, E>
         where E: Error
     {
-        Ok(Nson::I32(value as i32))
+        Ok(Nson::I32(i32::from(value)))
     }
 
     #[inline]
     fn visit_u8<E>(self, value: u8) -> Result<Nson, E>
         where E: Error
     {
-        Ok(Nson::U32(value as u32))
+        Ok(Nson::U32(u32::from(value)))
     }
 
     #[inline]
     fn visit_i16<E>(self, value: i16) -> Result<Nson, E>
         where E: Error
     {
-        Ok(Nson::I32(value as i32))
+        Ok(Nson::I32(i32::from(value)))
     }
 
     #[inline]
     fn visit_u16<E>(self, value: u16) -> Result<Nson, E>
         where E: Error
     {
-        Ok(Nson::U32(value as u32))
+        Ok(Nson::U32(u32::from(value)))
     }
 
     #[inline]
@@ -200,10 +201,11 @@ impl<'de> Visitor<'de> for NsonVisitor {
         where V: MapAccess<'de>
     {
         let values = ObjectVisitor::new().visit_map(visitor)?;
-        Ok(Nson::from_extended_object(values.into()))
+        Ok(Nson::from_extended_object(values))
     }
 }
 
+#[derive(Default)]
 pub struct ObjectVisitor {
     marker: PhantomData<Object>
 }
@@ -317,7 +319,7 @@ impl<'de> Deserializer<'de> for Decoder {
                 visitor.visit_seq(
                     SeqDecoder {
                         iter: v.into_iter(),
-                        len: len,
+                        len,
                     }
                 )
             }
@@ -327,7 +329,7 @@ impl<'de> Deserializer<'de> for Decoder {
                     MapDecoder {
                         iter: v.into_iter(),
                         value: None,
-                        len: len,
+                        len,
                     }
                 )
             }
@@ -341,7 +343,7 @@ impl<'de> Deserializer<'de> for Decoder {
                     MapDecoder {
                         iter: object.into_iter(),
                         value: None,
-                        len: len,
+                        len,
                     }
                 )
             }

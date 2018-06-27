@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::fmt;
 use std::error;
 use std::mem;
+use std::i64;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 use chrono::Timelike;
@@ -157,7 +158,7 @@ pub fn encode_nson<W>(writer: &mut W, key: &str, val: &Nson) -> EncodeResult<()>
         Nson::UTCDatetime(ref v) => {
             write_i64(
                 writer,
-                (v.timestamp() * 1000) + (v.nanosecond() / 1000000) as i64
+                (v.timestamp() * 1000) + i64::from(v.nanosecond() / 1_000_000)
             )
         }
     }
@@ -167,7 +168,7 @@ pub fn encode_object<'a, S, W, D> (writer: &mut W, object: D) -> EncodeResult<()
     where S: AsRef<str> + 'a, W: Write + ?Sized, D: IntoIterator<Item = (&'a S, &'a Nson)>
 {
     let mut buf = Vec::new();
-    for (key, val) in object.into_iter() {
+    for (key, val) in object {
         encode_nson(&mut buf, key.as_ref(), val)?;
     }
 

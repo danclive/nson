@@ -1,6 +1,6 @@
 use std::fmt;
 use std::ops::{Deref, DerefMut};
-use std::hash::{Hash, Hasher};
+use std::{f64, i64};
 
 use chrono::{DateTime, Utc, Timelike};
 use chrono::offset::TimeZone;
@@ -8,7 +8,6 @@ use chrono::offset::TimeZone;
 use object::Object;
 use spec::ElementType;
 use util::hex::{ToHex, FromHex};
-use encode;
 
 #[derive(Clone, PartialEq)]
 pub enum Nson {
@@ -47,7 +46,7 @@ impl fmt::Debug for Nson {
             Nson::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Nson::TimeStamp(t) => {
                 let time = (t >> 32) as i32;
-                let inc = (t & 0xFFFFFF) as i32;
+                let inc = (t & 0x00FF_FFFF) as i32;
 
                 write!(fmt, "TimeStamp({}, {})", time, inc)
             },
@@ -86,7 +85,7 @@ impl fmt::Display for Nson {
             Nson::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Nson::TimeStamp(t) => {
                 let time = (t >> 32) as i32;
-                let inc = (t & 0xFFFFFF) as i32;
+                let inc = (t & 0x00FF_FFFF) as i32;
 
                 write!(fmt, "TimeStamp({}, {})", time, inc)
             },
@@ -97,7 +96,7 @@ impl fmt::Display for Nson {
 
 impl From<f32> for Nson {
     fn from(f: f32) -> Nson {
-        Nson::Double(f as f64)
+        Nson::Double(f64::from(f))
     }
 }
 
@@ -207,7 +206,7 @@ impl Nson {
             }
             Nson::TimeStamp(v) => {
                 let time = (v >> 32) as i32;
-                let inc = (v & 0xFFFFFFFF) as i32;
+                let inc = (v & 0xFFFF_FFFF) as i32;
 
                 object! {
                     "t": time,
@@ -217,7 +216,7 @@ impl Nson {
             Nson::UTCDatetime(ref v) => {
                 object! {
                     "$date": {
-                        "$numberLong": (v.timestamp() * 1000) + v.nanosecond() as i64 / 1000000
+                        "$numberLong": (v.timestamp() * 1000) + i64::from(v.nanosecond()) / 1_000_000
                     }
                 }
             }
@@ -228,7 +227,7 @@ impl Nson {
     pub fn from_extended_object(values: Object) -> Nson {
         if values.len() == 2 {
             if let (Ok(t), Ok(i)) = (values.get_i32("t"), values.get_i32("i")) {
-                let timestamp = ((t as i64) << 32) + (i as i64);
+                let timestamp = (i64::from(t) << 32) + i64::from(i);
                 return Nson::TimeStamp(timestamp);
 
             } else if let (Ok(t), Ok(i)) = (values.get_i64("t"), values.get_i64("i")) {
@@ -241,19 +240,11 @@ impl Nson {
             if let Ok(hex) = values.get_str("$binary") {
                 return Nson::Binary(FromHex::from_hex(hex.as_bytes()).unwrap());
             } else if let Ok(long) = values.get_object("$date").and_then(|inner| inner.get_i64("$numberLong")) {
-                return Nson::UTCDatetime(Utc.timestamp(long / 1000, ((long % 1000) * 1000000) as u32));
+                return Nson::UTCDatetime(Utc.timestamp(long / 1000, ((long % 1000) * 1_000_000) as u32));
             }
         }
 
         Nson::Object(values)
-    }
-}
-
-impl Hash for Nson {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let mut buf: Vec<u8> = Vec::new();
-        let _ = encode::encode_nson(&mut buf, "", self);
-        buf.hash(state);
     }
 }
 

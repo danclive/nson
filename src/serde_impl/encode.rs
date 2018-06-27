@@ -1,3 +1,5 @@
+use std::{u32, i32, f64};
+
 use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeTupleStruct,
                  SerializeTupleVariant, SerializeMap, SerializeStruct, SerializeStructVariant};
 
@@ -47,6 +49,7 @@ impl Serialize for Nson {
     }
 }
 
+#[derive(Default)]
 pub struct Encoder;
 
 impl Encoder {
@@ -74,22 +77,22 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_i8(self, value: i8) -> EncodeResult<Nson> {
-        self.serialize_i32(value as i32)
+        self.serialize_i32(i32::from(value))
     }
 
     #[inline]
     fn serialize_u8(self, value: u8) -> EncodeResult<Nson> {
-        self.serialize_u32(value as u32)
+        self.serialize_u32(u32::from(value))
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> EncodeResult<Nson> {
-        self.serialize_i32(value as i32)
+        self.serialize_i32(i32::from(value))
     }
 
     #[inline]
     fn serialize_u16(self, value: u16) -> EncodeResult<Nson> {
-        self.serialize_u32(value as u32)
+        self.serialize_u32(u32::from(value))
     }
 
     #[inline]
@@ -114,7 +117,7 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_f32(self, value: f32) -> EncodeResult<Nson> {
-        self.serialize_f64(value as f64)
+        self.serialize_f64(f64::from(value))
     }
 
     #[inline]

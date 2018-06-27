@@ -220,7 +220,7 @@ fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Nson> 
         }
         Some(ElementType::UTCDatetime) => {
             let time = read_i64(reader)?;
-            Ok(Nson::UTCDatetime(Utc.timestamp(time / 1000, (time % 1000) as u32 * 1000000)))
+            Ok(Nson::UTCDatetime(Utc.timestamp(time / 1000, (time % 1000) as u32 * 1_000_000)))
         }
         None => {
             Err(DecodeError::UnrecognizedElementType(tag))

@@ -68,7 +68,7 @@ impl FromHex for Vec<u8> {
         let bytes = s.as_ref();
         let mut b = Vec::with_capacity(bytes.len() / 2);
         let mut modulus = 0;
-        let mut buf = 08;
+        let mut buf = 8;
 
         for (idx, byte) in bytes.iter().enumerate() {
             buf <<= 4;

@@ -15,7 +15,7 @@ pub enum Error {
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct Object {
     inner: LinkedHashMap<String, Nson>
 }
@@ -63,7 +63,7 @@ impl Object {
         self.inner.remove(key)
     }
 
-    pub fn iter<'a>(&'a self) -> ObjectIterator<'a> {
+    pub fn iter(&self) -> ObjectIterator<'_> {
         self.into_iter()
     }
 
