@@ -6,11 +6,10 @@ use chrono::Utc;
 use chrono::offset::TimeZone;
 use serde::de::Deserialize;
 
-use spec::ElementType;
-use nson::Array;
-use nson::Nson;
-use object::Object;
-use serde_impl::decode::Decoder;
+use crate::spec::ElementType;
+use crate::value::{Value, Array};
+use crate::message::Message;
+use crate::serde_impl::decode::Decoder;
 
 #[derive(Debug)]
 pub enum DecodeError {
@@ -101,7 +100,7 @@ impl error::Error for DecodeError {
 
 pub type DecodeResult<T> = Result<T, DecodeError>;
 
-fn read_string<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
+pub(crate) fn read_string<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
     let len = reader.read_i32::<LittleEndian>()?;
 
     let mut s = String::with_capacity(len as usize - 1);
@@ -111,7 +110,7 @@ fn read_string<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
     Ok(s)
 }
 
-fn read_cstring<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
+pub(crate) fn read_cstring<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
     let mut v = Vec::new();
 
     loop {
@@ -126,22 +125,22 @@ fn read_cstring<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
 }
 
 #[inline]
-fn read_i32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<i32> {
+pub(crate) fn read_i32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<i32> {
     reader.read_i32::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-fn read_i64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<i64> {
+pub(crate) fn read_i64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<i64> {
     reader.read_i64::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-fn read_u32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u32> {
+pub(crate) fn read_u32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u32> {
     reader.read_u32::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-fn read_u64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u64> {
+pub(crate) fn read_u64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u64> {
     reader.read_u64::<LittleEndian>().map_err(From::from)
 }
 
@@ -175,31 +174,31 @@ fn decode_array<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Array> {
     Ok(arr)
 }
 
-fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Nson> {
+fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value> {
     match ElementType::from(tag) {
         Some(ElementType::Double) => {
-            Ok(Nson::Double(reader.read_f64::<LittleEndian>()?))
+            Ok(Value::Double(reader.read_f64::<LittleEndian>()?))
         }
         Some(ElementType::I32) => {
-            read_i32(reader).map(Nson::I32)
+            read_i32(reader).map(Value::I32)
         }
         Some(ElementType::I64) => {
-            read_i64(reader).map(Nson::I64)
+            read_i64(reader).map(Value::I64)
         }
         Some(ElementType::U32) => {
-            read_u32(reader).map(Nson::U32)
+            read_u32(reader).map(Value::U32)
         }
         Some(ElementType::U64) => {
-            read_u64(reader).map(Nson::U64)
+            read_u64(reader).map(Value::U64)
         }
         Some(ElementType::String) => {
-            read_string(reader).map(Nson::String)
+            read_string(reader).map(Value::String)
         }
-        Some(ElementType::Object) => {
-            decode_object(reader).map(Nson::Object)
+        Some(ElementType::Message) => {
+            decode_message(reader).map(Value::Message)
         }
         Some(ElementType::Array) => {
-            decode_array(reader).map(Nson::Array)
+            decode_array(reader).map(Value::Array)
         }
         Some(ElementType::Binary) => {
             let len = read_i32(reader)?;
@@ -207,20 +206,20 @@ fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Nson> 
             
             reader.take(len as u64).read_to_end(&mut data)?;
             
-            Ok(Nson::Binary(data))
+            Ok(Value::Binary(data))
         }
         Some(ElementType::Boolean) => {
-            Ok(Nson::Boolean(reader.read_u8()? != 0))
+            Ok(Value::Boolean(reader.read_u8()? != 0))
         }
         Some(ElementType::Null) => {
-            Ok(Nson::Null)
+            Ok(Value::Null)
         }
         Some(ElementType::TimeStamp) => {
-            read_i64(reader).map(Nson::TimeStamp)
+            read_i64(reader).map(Value::TimeStamp)
         }
         Some(ElementType::UTCDatetime) => {
             let time = read_i64(reader)?;
-            Ok(Nson::UTCDatetime(Utc.timestamp(time / 1000, (time % 1000) as u32 * 1_000_000)))
+            Ok(Value::UTCDatetime(Utc.timestamp(time / 1000, (time % 1000) as u32 * 1_000_000)))
         }
         None => {
             Err(DecodeError::UnrecognizedElementType(tag))
@@ -228,8 +227,8 @@ fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Nson> 
     }
 }
 
-pub fn decode_object<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Object> {
-    let mut object = Object::new();
+pub fn decode_message<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Message> {
+    let mut message = Message::new();
 
     // disregard the length: using Read::take causes infinite type recursion
     read_i32(reader)?;
@@ -244,16 +243,16 @@ pub fn decode_object<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Object> {
         let key = read_cstring(reader)?;
         let val = decode_nson(reader, tag)?;
 
-        object.insert(key, val);
+        message.insert(key, val);
     }
 
-    Ok(object)
+    Ok(message)
 }
 
-pub fn from_nson<'de, T>(bson: Nson) -> DecodeResult<T>
+pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
     where T: Deserialize<'de>
 {
-    let de = Decoder::new(bson);
+    let de = Decoder::new(value);
     Deserialize::deserialize(de)
 }
 
@@ -261,6 +260,6 @@ pub fn from_slice<'de, T>(slice: &[u8]) -> DecodeResult<T>
     where T: Deserialize<'de>
 {
     let mut reader = Cursor::new(slice);
-    let object = decode_object(&mut reader)?;
-    from_nson(Nson::Object(object))
+    let message = decode_message(&mut reader)?;
+    from_nson(Value::Message(message))
 }

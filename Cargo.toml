@@ -9,6 +9,7 @@ homepage      = "https://github.com/mitum/queen-io"
 repository    = "https://github.com/mitum/queen-io"
 readme        = "README.md"
 keywords      = ["nson"]
+edition 	  = "2018"
 exclude       = [
   ".gitignore",
   ".travis.yml",

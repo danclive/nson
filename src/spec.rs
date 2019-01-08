@@ -5,7 +5,7 @@ pub const U32: u8 = 0x04;
 pub const U64: u8 = 0x05;
 pub const STRING: u8 = 0x06;
 pub const ARRAY: u8 = 0x07;
-pub const OBJECT: u8 = 0x08;
+pub const MESSAGE: u8 = 0x08;
 pub const BOOLEAN: u8 = 0x09;
 pub const NULL: u8 = 0x0A;
 pub const BINARY: u8 = 0x0B;
@@ -22,7 +22,7 @@ pub enum ElementType {
     U64 = U64,
     String = STRING,
     Array = ARRAY,
-    Object = OBJECT,
+    Message = MESSAGE,
     Boolean = BOOLEAN,
     Null = NULL,
     Binary = BINARY,
@@ -40,7 +40,7 @@ impl ElementType {
             U64 => ElementType::U64, 
             STRING => ElementType::String,
             ARRAY => ElementType::Array,
-            OBJECT => ElementType::Object,
+            MESSAGE => ElementType::Message,
             BOOLEAN => ElementType::Boolean,
             NULL => ElementType::Null,
             BINARY => ElementType::Binary,

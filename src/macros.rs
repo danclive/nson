@@ -1,6 +1,6 @@
 // NSON macro based on the serde_json json! implementation.
 
-/// Construct a nson::NSON value from a literal.
+/// Construct a value::Value value from a literal.
 ///
 /// ```rust
 /// # #[macro_use]
@@ -30,12 +30,12 @@ macro_rules! nson {
 
     // Finished with trailing comma.
     (@array [$($elems:expr,)*]) => {
-        vec![$($elems,)*]
+        $crate::value::Array::from_vec(vec![$($elems,)*])
     };
 
     // Finished without trailing comma.
     (@array [$($elems:expr),*]) => {
-        vec![$($elems),*]
+        $crate::value::Array::from_vec(vec![$($elems,)*])
     };
 
     // Next element is `null`.
@@ -83,13 +83,13 @@ macro_rules! nson {
 
     // Insert the current entry followed by trailing comma.
     (@object $object:ident [$($key:tt)+] ($value:expr) , $($rest:tt)*) => {
-        $object.insert_nson(($($key)+).into(), $value);
+        $object.insert_value(($($key)+).into(), $value);
         nson!(@object $object () ($($rest)*) ($($rest)*));
     };
 
     // Insert the last entry without trailing comma.
     (@object $object:ident [$($key:tt)+] ($value:expr)) => {
-        $object.insert_nson(($($key)+).into(), $value);
+        $object.insert_value(($($key)+).into(), $value);
     };
 
     // Next value is `null`.
@@ -190,44 +190,44 @@ macro_rules! nson {
     //////////////////////////////////////////////////////////////////////////
     // The main implementation.
     //
-    // Must be invoked as: nson!($($bson)+)
+    // Must be invoked as: nson!($($nson)+)
     //////////////////////////////////////////////////////////////////////////
 
     (null) => {
-        $crate::nson::Nson::Null
+        $crate::value::Value::Null
     };
 
     ([]) => {
-        $crate::nson::Nson::Array(vec![])
+        $crate::value::Value::Array(vec![].into())
     };
 
     ([ $($tt:tt)+ ]) => {
-        $crate::nson::Nson::Array(nson!(@array [] $($tt)+))
+        $crate::value::Value::Array(nson!(@array [] $($tt)+))
     };
 
     ({}) => {
-        $crate::nson::Nson::Object(object!{})
+        $crate::value::Value::Message(msg!{})
     };
 
     ({$($tt:tt)+}) => {
-        $crate::nson::Nson::Object(object!{$($tt)+});
+        $crate::value::Value::Message(msg!{$($tt)+});
     };
 
     // Any Serialize type: numbers, strings, struct literals, variables etc.
     // Must be below every other rule.
     ($other:expr) => {
-        ::std::convert::From::from($other)
+        std::convert::From::from($other)
     };
 }
 
-/// Construct a nson::Object value.
+/// Construct a nson::Message value.
 ///
 /// ```rust
 /// # #[macro_use]
 /// # extern crate nson;
 /// #
 /// # fn main() {
-/// let value = object! {
+/// let value = msg! {
 ///     "code": 200,
 ///     "success": true,
 ///     "payload": {
@@ -240,10 +240,10 @@ macro_rules! nson {
 /// # }
 /// ```
 #[macro_export]
-macro_rules! object {
-    () => {{ $crate::object::Object::new() }};
+macro_rules! msg {
+    () => {{ $crate::message::Message::new() }};
     ( $($tt:tt)+ ) => {{
-        let mut object = $crate::object::Object::new();
+        let mut object = $crate::message::Message::new();
         nson!(@object object () ($($tt)+) ($($tt)+));
         object
     }};

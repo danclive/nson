@@ -10,12 +10,10 @@ use serde::de::{Error, Expected, Unexpected};
 
 use linked_hash_map::LinkedHashMap;
 
-use nson::Nson;
-use nson::UTCDateTime;
-use object::Object;
-use object::ObjectIntoIterator;
-use decode::DecodeError;
-use decode::DecodeResult;
+use crate::value::{Value, Array, UTCDateTime};
+use crate::message::{Message, IntoIter};
+use crate::decode::DecodeError;
+use crate::decode::DecodeResult;
 
 impl de::Error for DecodeError {
     fn custom<T: fmt::Display>(msg: T) -> DecodeError {
@@ -51,187 +49,187 @@ impl de::Error for DecodeError {
     }
 }
 
-impl<'de> Deserialize<'de> for Object {
+impl<'de> Deserialize<'de> for Message {
     /// Deserialize this value given this `Deserializer`.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
         deserializer
-            .deserialize_map(NsonVisitor)
-            .and_then(|bson|
-                if let Nson::Object(object) = bson {
-                    Ok(object)
+            .deserialize_map(ValueVisitor)
+            .and_then(|nson|
+                if let Value::Message(message) = nson {
+                    Ok(message)
                 } else {
-                    let err = format!("expected object, found extended JSON data type: {}", bson);
+                    let err = format!("expected message, found extended JSON data type: {}", nson);
                     Err(de::Error::invalid_type(Unexpected::Map, &&*err))
             })
     }
 }
 
-impl<'de> Deserialize<'de> for Nson {
+impl<'de> Deserialize<'de> for Value {
     #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Nson, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Value, D::Error>
         where D: Deserializer<'de>
     {
-        deserializer.deserialize_any(NsonVisitor)
+        deserializer.deserialize_any(ValueVisitor)
     }
 }
 
-pub struct NsonVisitor;
+pub struct ValueVisitor;
 
-impl<'de> Visitor<'de> for NsonVisitor {
-    type Value = Nson;
+impl<'de> Visitor<'de> for ValueVisitor {
+    type Value = Value;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "expecting a Nson")
+        write!(f, "expecting a Value")
     }
 
     #[inline]
-    fn visit_bool<E>(self, value: bool) -> Result<Nson, E>
+    fn visit_bool<E>(self, value: bool) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::Boolean(value))
+        Ok(Value::Boolean(value))
     }
 
     #[inline]
-    fn visit_i8<E>(self, value: i8) -> Result<Nson, E>
+    fn visit_i8<E>(self, value: i8) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::I32(i32::from(value)))
+        Ok(Value::I32(i32::from(value)))
     }
 
     #[inline]
-    fn visit_u8<E>(self, value: u8) -> Result<Nson, E>
+    fn visit_u8<E>(self, value: u8) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::U32(u32::from(value)))
+        Ok(Value::U32(u32::from(value)))
     }
 
     #[inline]
-    fn visit_i16<E>(self, value: i16) -> Result<Nson, E>
+    fn visit_i16<E>(self, value: i16) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::I32(i32::from(value)))
+        Ok(Value::I32(i32::from(value)))
     }
 
     #[inline]
-    fn visit_u16<E>(self, value: u16) -> Result<Nson, E>
+    fn visit_u16<E>(self, value: u16) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::U32(u32::from(value)))
+        Ok(Value::U32(u32::from(value)))
     }
 
     #[inline]
-    fn visit_i32<E>(self, value: i32) -> Result<Nson, E>
+    fn visit_i32<E>(self, value: i32) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::I32(value))
+        Ok(Value::I32(value))
     }
 
     #[inline]
-    fn visit_u32<E>(self, value: u32) -> Result<Nson, E>
+    fn visit_u32<E>(self, value: u32) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::U32(value))
+        Ok(Value::U32(value))
     }
 
     #[inline]
-    fn visit_i64<E>(self, value: i64) -> Result<Nson, E>
+    fn visit_i64<E>(self, value: i64) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::I64(value))
+        Ok(Value::I64(value))
     }
 
     #[inline]
-    fn visit_u64<E>(self, value: u64) -> Result<Nson, E>
+    fn visit_u64<E>(self, value: u64) -> Result<Value, E>
         where E: Error
     {
-        Ok(Nson::U64(value))
+        Ok(Value::U64(value))
     }
 
     #[inline]
-    fn visit_f64<E>(self, value: f64) -> Result<Nson, E> {
-        Ok(Nson::Double(value))
+    fn visit_f64<E>(self, value: f64) -> Result<Value, E> {
+        Ok(Value::Double(value))
     }
 
     #[inline]
-    fn visit_str<E>(self, value: &str) -> Result<Nson, E>
+    fn visit_str<E>(self, value: &str) -> Result<Value, E>
         where E: de::Error
     {
         self.visit_string(value.to_string())
     }
 
     #[inline]
-    fn visit_string<E>(self, value: String) -> Result<Nson, E> {
-        Ok(Nson::String(value))
+    fn visit_string<E>(self, value: String) -> Result<Value, E> {
+        Ok(Value::String(value))
     }
 
     #[inline]
-    fn visit_none<E>(self) -> Result<Nson, E> {
-        Ok(Nson::Null)
+    fn visit_none<E>(self) -> Result<Value, E> {
+        Ok(Value::Null)
     }
 
     #[inline]
-    fn visit_some<D>(self, deserializer: D) -> Result<Nson, D::Error>
+    fn visit_some<D>(self, deserializer: D) -> Result<Value, D::Error>
         where D: Deserializer<'de>
     {
         deserializer.deserialize_any(self)
     }
 
     #[inline]
-    fn visit_unit<E>(self) -> Result<Nson, E> {
-        Ok(Nson::Null)
+    fn visit_unit<E>(self) -> Result<Value, E> {
+        Ok(Value::Null)
     }
 
     #[inline]
-    fn visit_seq<V>(self, mut visitor: V) -> Result<Nson, V::Error>
+    fn visit_seq<V>(self, mut visitor: V) -> Result<Value, V::Error>
         where V: SeqAccess<'de>
     {
-        let mut values = Vec::new();
+        let mut values = Array::new();
 
         while let Some(elem) = visitor.next_element()? {
             values.push(elem);
         }
 
-        Ok(Nson::Array(values))
+        Ok(Value::Array(values))
     }
 
     #[inline]
-    fn visit_map<V>(self, visitor: V) -> Result<Nson, V::Error>
+    fn visit_map<V>(self, visitor: V) -> Result<Value, V::Error>
         where V: MapAccess<'de>
     {
-        let values = ObjectVisitor::new().visit_map(visitor)?;
-        Ok(Nson::from_extended_object(values))
+        let values = MessageVisitor::new().visit_map(visitor)?;
+        Ok(Value::from_extended_message(values))
     }
 }
 
 #[derive(Default)]
-pub struct ObjectVisitor {
-    marker: PhantomData<Object>
+pub struct MessageVisitor {
+    marker: PhantomData<Message>
 }
 
-impl ObjectVisitor {
-    pub fn new() -> ObjectVisitor {
-        ObjectVisitor { marker: PhantomData }
+impl MessageVisitor {
+    pub fn new() -> MessageVisitor {
+        MessageVisitor { marker: PhantomData }
     }
 }
 
-impl<'de> Visitor<'de> for ObjectVisitor {
-    type Value = Object;
+impl<'de> Visitor<'de> for MessageVisitor {
+    type Value = Message;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "expecting ordered object")
     }
 
     #[inline]
-    fn visit_unit<E>(self) -> result::Result<Object, E>
+    fn visit_unit<E>(self) -> result::Result<Message, E>
         where E: de::Error
     {
-        Ok(Object::new())
+        Ok(Message::new())
     }
 
     #[inline]
-    fn visit_map<V>(self, mut visitor: V) -> result::Result<Object, V::Error>
+    fn visit_map<V>(self, mut visitor: V) -> result::Result<Message, V::Error>
         where V: MapAccess<'de>
     {
         let mut inner = match visitor.size_hint() {
@@ -249,11 +247,11 @@ impl<'de> Visitor<'de> for ObjectVisitor {
 
 /// Serde Decoder
 pub struct Decoder {
-    value: Option<Nson>,
+    value: Option<Value>,
 }
 
 impl Decoder {
-    pub fn new(value: Nson) -> Decoder {
+    pub fn new(value: Value) -> Decoder {
         Decoder { value: Some(value) }
     }
 }
@@ -308,13 +306,13 @@ impl<'de> Deserializer<'de> for Decoder {
         };
 
         match value {
-            Nson::Double(v) => visitor.visit_f64(v),
-            Nson::I32(v) => visitor.visit_i32(v),
-            Nson::I64(v) => visitor.visit_i64(v),
-            Nson::U32(v) => visitor.visit_u32(v),
-            Nson::U64(v) => visitor.visit_u64(v),
-            Nson::String(v) => visitor.visit_string(v),
-            Nson::Array(v) => {
+            Value::Double(v) => visitor.visit_f64(v),
+            Value::I32(v) => visitor.visit_i32(v),
+            Value::I64(v) => visitor.visit_i64(v),
+            Value::U32(v) => visitor.visit_u32(v),
+            Value::U64(v) => visitor.visit_u64(v),
+            Value::String(v) => visitor.visit_string(v),
+            Value::Array(v) => {
                 let len = v.len();
                 visitor.visit_seq(
                     SeqDecoder {
@@ -323,7 +321,7 @@ impl<'de> Deserializer<'de> for Decoder {
                     }
                 )
             }
-            Nson::Object(v) => {
+            Value::Message(v) => {
                 let len = v.len();
                 visitor.visit_map(
                     MapDecoder {
@@ -333,15 +331,15 @@ impl<'de> Deserializer<'de> for Decoder {
                     }
                 )
             }
-            Nson::Boolean(v) => visitor.visit_bool(v),
-            Nson::Null => visitor.visit_unit(),
-            Nson::Binary(v) => visitor.visit_bytes(&v),
+            Value::Boolean(v) => visitor.visit_bool(v),
+            Value::Null => visitor.visit_unit(),
+            Value::Binary(v) => visitor.visit_bytes(&v),
             _ => {
-                let object = value.to_extended_object();
-                let len = object.len();
+                let message = value.to_extended_message();
+                let len = message.len();
                 visitor.visit_map(
                     MapDecoder {
-                        iter: object.into_iter(),
+                        iter: message.into_iter(),
                         value: None,
                         len,
                     }
@@ -355,7 +353,7 @@ impl<'de> Deserializer<'de> for Decoder {
         where V: Visitor<'de>
     {
         match self.value {
-            Some(Nson::Null) => visitor.visit_none(),
+            Some(Value::Null) => visitor.visit_none(),
             Some(_) => visitor.visit_some(self),
             None => Err(DecodeError::EndOfStream),
         }
@@ -371,11 +369,11 @@ impl<'de> Deserializer<'de> for Decoder {
         where V: Visitor<'de>
     {
         let value = match self.value.take() {
-            Some(Nson::Object(value)) => value,
-            Some(Nson::String(variant)) => {
+            Some(Value::Message(value)) => value,
+            Some(Value::String(variant)) => {
                 return visitor.visit_enum(
                     EnumDecoder {
-                        val: Nson::String(variant),
+                        val: Value::String(variant),
                         decoder: VariantDecoder { val: None },
                     }
                 );
@@ -403,7 +401,7 @@ impl<'de> Deserializer<'de> for Decoder {
             None => {
                 visitor.visit_enum(
                     EnumDecoder {
-                        val: Nson::String(variant),
+                        val: Value::String(variant),
                         decoder: VariantDecoder { val: Some(value) },
                     }
                 )
@@ -452,7 +450,7 @@ impl<'de> Deserializer<'de> for Decoder {
 }
 
 struct EnumDecoder {
-    val: Nson,
+    val: Value,
     decoder: VariantDecoder,
 }
 
@@ -469,7 +467,7 @@ impl<'de> EnumAccess<'de> for EnumDecoder {
 }
 
 struct VariantDecoder {
-    val: Option<Nson>,
+    val: Option<Value>,
 }
 
 impl<'de> VariantAccess<'de> for VariantDecoder {
@@ -479,7 +477,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
         match self.val.take() {
             None => Ok(()),
             Some(val) => {
-                Nson::deserialize(Decoder::new(val)).map(|_| ())
+                Value::deserialize(Decoder::new(val)).map(|_| ())
             }
         }
     }
@@ -494,7 +492,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
     fn tuple_variant<V>(mut self, _len: usize, visitor: V) -> DecodeResult<V::Value>
         where V: Visitor<'de>
     {
-        if let Nson::Array(fields) = self.val.take().ok_or(DecodeError::EndOfStream)? {
+        if let Value::Array(fields) = self.val.take().ok_or(DecodeError::EndOfStream)? {
 
             let de = SeqDecoder {
                 len: fields.len(),
@@ -513,7 +511,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
     ) -> DecodeResult<V::Value>
         where V: Visitor<'de>
     {
-        if let Nson::Object(fields) = self.val.take().ok_or(DecodeError::EndOfStream)? {
+        if let Value::Message(fields) = self.val.take().ok_or(DecodeError::EndOfStream)? {
             let de = MapDecoder {
                 len: fields.len(),
                 iter: fields.into_iter(),
@@ -527,7 +525,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
 }
 
 struct SeqDecoder {
-    iter: vec::IntoIter<Nson>,
+    iter: vec::IntoIter<Value>,
     len: usize,
 }
 
@@ -602,8 +600,8 @@ impl<'de> SeqAccess<'de> for SeqDecoder {
 }
 
 struct MapDecoder {
-    iter: ObjectIntoIterator,
-    value: Option<Nson>,
+    iter: IntoIter<String, Value>,
+    value: Option<Value>,
     len: usize,
 }
 
@@ -618,7 +616,7 @@ impl<'de> MapAccess<'de> for MapDecoder {
                 self.len -= 1;
                 self.value = Some(value);
 
-                let de = Decoder::new(Nson::String(key));
+                let de = Decoder::new(Value::String(key));
                 match seed.deserialize(de) {
                     Ok(val) => Ok(Some(val)),
                     Err(DecodeError::UnknownField(_)) => Ok(None),
@@ -690,8 +688,8 @@ impl<'de> Deserialize<'de> for UTCDateTime {
     {
         use serde::de::Error;
 
-        match Nson::deserialize(deserializer)? {
-            Nson::UTCDatetime(dt) => Ok(UTCDateTime(dt)),
+        match Value::deserialize(deserializer)? {
+            Value::UTCDatetime(dt) => Ok(UTCDateTime(dt)),
             _ => Err(D::Error::custom("expecting UtcDateTime")),
         }
     }

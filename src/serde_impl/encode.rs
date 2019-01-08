@@ -3,15 +3,13 @@ use std::{u32, i32, f64};
 use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeTupleStruct,
                  SerializeTupleVariant, SerializeMap, SerializeStruct, SerializeStructVariant};
 
-use object::Object;
-use nson::Nson;
-use nson::Array;
-use nson::UTCDateTime;
-use encode::to_nson;
-use encode::EncodeError;
-use encode::EncodeResult;
+use crate::message::Message;
+use crate::value::{Value, Array, UTCDateTime};
+use crate::encode::to_nson;
+use crate::encode::EncodeError;
+use crate::encode::EncodeResult;
 
-impl Serialize for Object {
+impl Serialize for Message {
      #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
@@ -25,24 +23,24 @@ impl Serialize for Object {
     }
 }
 
-impl Serialize for Nson {
+impl Serialize for Value {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         match *self {
-            Nson::Double(v) => serializer.serialize_f64(v),
-            Nson::I32(v) => serializer.serialize_i32(v),
-            Nson::I64(v) => serializer.serialize_i64(v),
-            Nson::U32(v) => serializer.serialize_u32(v),
-            Nson::U64(v) => serializer.serialize_u64(v),
-            Nson::String(ref v) => serializer.serialize_str(v),
-            Nson::Array(ref v) => v.serialize(serializer),
-            Nson::Object(ref v) => v.serialize(serializer),
-            Nson::Boolean(v) => serializer.serialize_bool(v),
-            Nson::Null => serializer.serialize_unit(),
+            Value::Double(v) => serializer.serialize_f64(v),
+            Value::I32(v) => serializer.serialize_i32(v),
+            Value::I64(v) => serializer.serialize_i64(v),
+            Value::U32(v) => serializer.serialize_u32(v),
+            Value::U64(v) => serializer.serialize_u64(v),
+            Value::String(ref v) => serializer.serialize_str(v),
+            Value::Array(ref v) => v.serialize(serializer),
+            Value::Message(ref v) => v.serialize(serializer),
+            Value::Boolean(v) => serializer.serialize_bool(v),
+            Value::Null => serializer.serialize_unit(),
             _ => {
-                let object = self.to_extended_object();
+                let object = self.to_extended_message();
                 object.serialize(serializer)
             }
         }
@@ -59,7 +57,7 @@ impl Encoder {
 }
 
 impl Serializer for Encoder {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     type SerializeSeq = ArraySerializer;
@@ -71,95 +69,95 @@ impl Serializer for Encoder {
     type SerializeStructVariant = StructVariantSerializer;
 
     #[inline]
-    fn serialize_bool(self, value: bool) -> EncodeResult<Nson> {
-        Ok(Nson::Boolean(value))
+    fn serialize_bool(self, value: bool) -> EncodeResult<Value> {
+        Ok(Value::Boolean(value))
     }
 
     #[inline]
-    fn serialize_i8(self, value: i8) -> EncodeResult<Nson> {
+    fn serialize_i8(self, value: i8) -> EncodeResult<Value> {
         self.serialize_i32(i32::from(value))
     }
 
     #[inline]
-    fn serialize_u8(self, value: u8) -> EncodeResult<Nson> {
+    fn serialize_u8(self, value: u8) -> EncodeResult<Value> {
         self.serialize_u32(u32::from(value))
     }
 
     #[inline]
-    fn serialize_i16(self, value: i16) -> EncodeResult<Nson> {
+    fn serialize_i16(self, value: i16) -> EncodeResult<Value> {
         self.serialize_i32(i32::from(value))
     }
 
     #[inline]
-    fn serialize_u16(self, value: u16) -> EncodeResult<Nson> {
+    fn serialize_u16(self, value: u16) -> EncodeResult<Value> {
         self.serialize_u32(u32::from(value))
     }
 
     #[inline]
-    fn serialize_i32(self, value: i32) -> EncodeResult<Nson> {
-        Ok(Nson::I32(value))
+    fn serialize_i32(self, value: i32) -> EncodeResult<Value> {
+        Ok(Value::I32(value))
     }
 
     #[inline]
-    fn serialize_u32(self, value: u32) -> EncodeResult<Nson> {
-        Ok(Nson::U32(value))
+    fn serialize_u32(self, value: u32) -> EncodeResult<Value> {
+        Ok(Value::U32(value))
     }
 
     #[inline]
-    fn serialize_i64(self, value: i64) -> EncodeResult<Nson> {
-        Ok(Nson::I64(value))
+    fn serialize_i64(self, value: i64) -> EncodeResult<Value> {
+        Ok(Value::I64(value))
     }
 
     #[inline]
-    fn serialize_u64(self, value: u64) -> EncodeResult<Nson> {
-        Ok(Nson::U64(value))
+    fn serialize_u64(self, value: u64) -> EncodeResult<Value> {
+        Ok(Value::U64(value))
     }
 
     #[inline]
-    fn serialize_f32(self, value: f32) -> EncodeResult<Nson> {
+    fn serialize_f32(self, value: f32) -> EncodeResult<Value> {
         self.serialize_f64(f64::from(value))
     }
 
     #[inline]
-    fn serialize_f64(self, value: f64) -> EncodeResult<Nson> {
-        Ok(Nson::Double(value))
+    fn serialize_f64(self, value: f64) -> EncodeResult<Value> {
+        Ok(Value::Double(value))
     }
 
     #[inline]
-    fn serialize_char(self, value: char) -> EncodeResult<Nson> {
+    fn serialize_char(self, value: char) -> EncodeResult<Value> {
         let mut s = String::new();
         s.push(value);
         self.serialize_str(&s)
     }
 
     #[inline]
-    fn serialize_str(self, value: &str) -> EncodeResult<Nson> {
-        Ok(Nson::String(value.to_string()))
+    fn serialize_str(self, value: &str) -> EncodeResult<Value> {
+        Ok(Value::String(value.to_string()))
     }
 
-    fn serialize_bytes(self, value: &[u8]) -> EncodeResult<Nson> {
-        Ok(Nson::Binary(value.into()))
+    fn serialize_bytes(self, value: &[u8]) -> EncodeResult<Value> {
+        Ok(Value::Binary(value.into()))
     }
 
     #[inline]
-    fn serialize_none(self) -> EncodeResult<Nson> {
+    fn serialize_none(self) -> EncodeResult<Value> {
         self.serialize_unit()
     }
 
     #[inline]
-    fn serialize_some<V: ?Sized>(self, value: &V) -> EncodeResult<Nson>
+    fn serialize_some<V: ?Sized>(self, value: &V) -> EncodeResult<Value>
         where V: Serialize
     {
         value.serialize(self)
     }
 
     #[inline]
-    fn serialize_unit(self) -> EncodeResult<Nson> {
-        Ok(Nson::Null)
+    fn serialize_unit(self) -> EncodeResult<Value> {
+        Ok(Value::Null)
     }
 
     #[inline]
-    fn serialize_unit_struct(self, _name: &'static str) -> EncodeResult<Nson> {
+    fn serialize_unit_struct(self, _name: &'static str) -> EncodeResult<Value> {
         self.serialize_unit()
     }
 
@@ -169,8 +167,8 @@ impl Serializer for Encoder {
         _name: &'static str,
         _variant_index: u32,
         variant: &'static str
-    ) -> EncodeResult<Nson> {
-        Ok(Nson::String(variant.to_string()))
+    ) -> EncodeResult<Value> {
+        Ok(Value::String(variant.to_string()))
     }
 
     #[inline]
@@ -178,7 +176,7 @@ impl Serializer for Encoder {
         self,
         _name: &'static str,
         value: &T
-    ) -> EncodeResult<Nson>
+    ) -> EncodeResult<Value>
         where T: Serialize
     {
         let mut ser = TupleStructSerializer { inner: Array::new() };
@@ -193,7 +191,7 @@ impl Serializer for Encoder {
         _variant_index: u32,
         variant: &'static str,
         value: &T
-    ) -> EncodeResult<Nson>
+    ) -> EncodeResult<Value>
         where T: Serialize
     {
         let mut ser = TupleVariantSerializer {
@@ -240,7 +238,7 @@ impl Serializer for Encoder {
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> EncodeResult<Self::SerializeMap> {
         Ok(MapSerializer {
-            inner: Object::new(),
+            inner: Message::new(),
             next_key: None,
         })
     }
@@ -251,7 +249,7 @@ impl Serializer for Encoder {
         _name: &'static str,
         _len: usize
     ) -> EncodeResult<Self::SerializeStruct> {
-        Ok(StructSerializer { inner: Object::new() })
+        Ok(StructSerializer { inner: Message::new() })
     }
 
     #[inline]
@@ -264,7 +262,7 @@ impl Serializer for Encoder {
     ) -> EncodeResult<Self::SerializeStructVariant> {
         Ok(StructVariantSerializer {
             name: variant,
-            inner: Object::new(),
+            inner: Message::new(),
         })
     }
 }
@@ -275,7 +273,7 @@ pub struct ArraySerializer {
 }
 
 impl SerializeSeq for ArraySerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> EncodeResult<()> {
@@ -283,8 +281,8 @@ impl SerializeSeq for ArraySerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        Ok(Nson::Array(self.inner))
+    fn end(self) -> EncodeResult<Value> {
+        Ok(Value::Array(self.inner))
     }
 }
 
@@ -293,7 +291,7 @@ pub struct TupleSerializer {
 }
 
 impl SerializeTuple for TupleSerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> EncodeResult<()> {
@@ -301,8 +299,8 @@ impl SerializeTuple for TupleSerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        Ok(Nson::Array(self.inner))
+    fn end(self) -> EncodeResult<Value> {
+        Ok(Value::Array(self.inner))
     }
 }
 
@@ -311,7 +309,7 @@ pub struct TupleStructSerializer {
 }
 
 impl SerializeTupleStruct for TupleStructSerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_field<T: ?Sized + Serialize>(&mut self, value: &T) -> EncodeResult<()> {
@@ -319,8 +317,8 @@ impl SerializeTupleStruct for TupleStructSerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        Ok(Nson::Array(self.inner))
+    fn end(self) -> EncodeResult<Value> {
+        Ok(Value::Array(self.inner))
     }
 }
 
@@ -330,7 +328,7 @@ pub struct TupleVariantSerializer {
 }
 
 impl SerializeTupleVariant for TupleVariantSerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_field<T: ?Sized + Serialize>(&mut self, value: &T) -> EncodeResult<()> {
@@ -338,30 +336,30 @@ impl SerializeTupleVariant for TupleVariantSerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        let mut tuple_variant = Object::new();
+    fn end(self) -> EncodeResult<Value> {
+        let mut tuple_variant = Message::new();
         if self.inner.len() == 1 {
             tuple_variant.insert(self.name, self.inner.into_iter().next().unwrap());
         } else {
-            tuple_variant.insert(self.name, Nson::Array(self.inner));
+            tuple_variant.insert(self.name, Value::Array(self.inner));
         }
 
-        Ok(Nson::Object(tuple_variant))
+        Ok(Value::Message(tuple_variant))
     }
 }
 
 pub struct MapSerializer {
-    inner: Object,
+    inner: Message,
     next_key: Option<String>
 }
 
 impl SerializeMap for MapSerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_key<T: ?Sized + Serialize>(&mut self, key: &T) -> EncodeResult<()> {
         self.next_key = match to_nson(&key)? {
-            Nson::String(s) => Some(s),
+            Value::String(s) => Some(s),
             other => return Err(EncodeError::InvalidMapKeyType(other)),
         };
         Ok(())
@@ -373,17 +371,17 @@ impl SerializeMap for MapSerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        Ok(Nson::from_extended_object(self.inner))
+    fn end(self) -> EncodeResult<Value> {
+        Ok(Value::from_extended_message(self.inner))
     }
 }
 
 pub struct StructSerializer {
-    inner: Object
+    inner: Message
 }
 
 impl SerializeStruct for StructSerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_field<T: ?Sized + Serialize>(
@@ -395,18 +393,18 @@ impl SerializeStruct for StructSerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        Ok(Nson::from_extended_object(self.inner))
+    fn end(self) -> EncodeResult<Value> {
+        Ok(Value::from_extended_message(self.inner))
     }
 }
 
 pub struct StructVariantSerializer {
-    inner: Object,
+    inner: Message,
     name: &'static str
 }
 
 impl SerializeStructVariant for StructVariantSerializer {
-    type Ok = Nson;
+    type Ok = Value;
     type Error = EncodeError;
 
     fn serialize_field<T: ?Sized + Serialize>(
@@ -418,13 +416,13 @@ impl SerializeStructVariant for StructVariantSerializer {
         Ok(())
     }
 
-    fn end(self) -> EncodeResult<Nson> {
-        let var = Nson::from_extended_object(self.inner);
+    fn end(self) -> EncodeResult<Value> {
+        let var = Value::from_extended_message(self.inner);
 
-        let mut struct_variant = Object::new();
+        let mut struct_variant = Message::new();
         struct_variant.insert(self.name, var);
 
-        Ok(Nson::Object(struct_variant))
+        Ok(Value::Message(struct_variant))
     }
 }
 
@@ -434,8 +432,8 @@ impl Serialize for UTCDateTime {
         where S: Serializer
     {
         // Cloning a `DateTime` is extremely cheap
-        let object = Nson::UTCDatetime(self.0);
-        object.serialize(serializer)
+        let message = Value::UTCDatetime(self.0);
+        message.serialize(serializer)
     }
 }
 

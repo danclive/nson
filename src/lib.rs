@@ -3,13 +3,13 @@ extern crate chrono;
 extern crate serde;
 extern crate byteorder;
 
-pub use nson::Nson;
-pub use object::Object;
+pub use self::value::Value;
+pub use self::message::Message;
 
 #[macro_use]
-pub mod macros;
-pub mod nson;
-pub mod object;
+mod macros;
+pub mod value;
+pub mod message;
 pub mod encode;
 pub mod decode;
 pub mod serde_impl;
