@@ -1,21 +1,24 @@
-pub const DOUBLE: u8 = 0x01;
-pub const I32: u8 = 0x02;
-pub const I64: u8 = 0x03;
-pub const U32: u8 = 0x04;
-pub const U64: u8 = 0x05;
-pub const STRING: u8 = 0x06;
-pub const ARRAY: u8 = 0x07;
-pub const MESSAGE: u8 = 0x08;
-pub const BOOLEAN: u8 = 0x09;
-pub const NULL: u8 = 0x0A;
-pub const BINARY: u8 = 0x0B;
-pub const TIMESTAMP: u8 = 0x0C;
-pub const UTC_DATETIME: u8 = 0x0D; 
+pub const F32: u8 = 0x01;
+pub const F64: u8 = 0x02;
+pub const I32: u8 = 0x03;
+pub const I64: u8 = 0x04;
+pub const U32: u8 = 0x05;
+pub const U64: u8 = 0x06;
+pub const STRING: u8 = 0x07;
+pub const ARRAY: u8 = 0x08;
+pub const MESSAGE: u8 = 0x09;
+pub const BOOLEAN: u8 = 0x0A;
+pub const NULL: u8 = 0x0B;
+pub const BINARY: u8 = 0x0C;
+pub const TIMESTAMP: u8 = 0x0D;
+pub const UTC_DATETIME: u8 = 0x0E;
+pub const MESSAGE_ID: u8 = 0x0F;
 
 #[repr(u8)]
 #[derive(Debug, Eq, PartialEq)]
 pub enum ElementType {
-    Double = DOUBLE,
+    F32 = F32,
+    F64 = F64,
     I32 = I32,
     I64 = I64,
     U32 = U32,
@@ -27,13 +30,15 @@ pub enum ElementType {
     Null = NULL,
     Binary = BINARY,
     TimeStamp = TIMESTAMP,
-    UTCDatetime = UTC_DATETIME
+    UTCDatetime = UTC_DATETIME,
+    MessageId = MESSAGE_ID
 }
 
 impl ElementType {
     pub fn from(tag: u8) -> Option<ElementType> {
         Some(match tag {
-            DOUBLE => ElementType::Double,
+            F32 => ElementType::F32,
+            F64 => ElementType::F64,
             I32 => ElementType::I32,
             I64 => ElementType::I64,
             U32 => ElementType::U32,
@@ -46,6 +51,7 @@ impl ElementType {
             BINARY => ElementType::Binary,
             TIMESTAMP => ElementType::TimeStamp,
             UTC_DATETIME => ElementType::UTCDatetime,
+            MESSAGE_ID => ElementType::MessageId,
             _ => return None
         })
     }

@@ -29,11 +29,11 @@ impl fmt::Display for EncodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             EncodeError::IoError(ref inner) => inner.fmt(fmt),
-            EncodeError::InvalidMapKeyType(ref nson) => {
-                write!(fmt, "Invalid map key type: {:?}", nson)
+            EncodeError::InvalidMapKeyType(ref bson) => {
+                write!(fmt, "Invalid map key type: {:?}", bson)
             }
             EncodeError::Unknown(ref inner) => inner.fmt(fmt),
-            EncodeError::UnsupportedUnsignedType => write!(fmt, "NSON does not support unsigned type"),
+            EncodeError::UnsupportedUnsignedType => write!(fmt, "bson does not support unsigned type"),
         }
     }
 }
@@ -44,7 +44,7 @@ impl error::Error for EncodeError {
             EncodeError::IoError(ref inner) => inner.description(),
             EncodeError::InvalidMapKeyType(_) => "Invalid map key type",
             EncodeError::Unknown(ref inner) => inner,
-            EncodeError::UnsupportedUnsignedType => "NSON does not support unsigned type",
+            EncodeError::UnsupportedUnsignedType => "bson does not support unsigned type",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -88,13 +88,6 @@ pub(crate) fn write_i32<W>(writer: &mut W, val: i32) -> EncodeResult<()>
 }
 
 #[inline]
-pub(crate) fn write_i64<W>(writer: &mut W, val: i64) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
-    writer.write_i64::<LittleEndian>(val).map_err(From::from)
-}
-
-#[inline]
 pub(crate) fn write_u32<W>(writer: &mut W, val: u32) -> EncodeResult<()>
     where W: Write + ?Sized
 {
@@ -102,10 +95,24 @@ pub(crate) fn write_u32<W>(writer: &mut W, val: u32) -> EncodeResult<()>
 }
 
 #[inline]
+pub(crate) fn write_i64<W>(writer: &mut W, val: i64) -> EncodeResult<()>
+    where W: Write + ?Sized
+{
+    writer.write_i64::<LittleEndian>(val).map_err(From::from)
+}
+
+#[inline]
 pub(crate) fn write_u64<W>(writer: &mut W, val: u64) -> EncodeResult<()>
     where W: Write + ?Sized
 {
     writer.write_u64::<LittleEndian>(val).map_err(From::from)
+}
+
+#[inline]
+pub(crate) fn write_f32<W>(writer: &mut W, val: f32) -> EncodeResult<()>
+    where W: Write + ?Sized
+{
+    writer.write_f32::<LittleEndian>(val).map_err(From::from)
 }
 
 #[inline]
@@ -118,18 +125,22 @@ pub(crate) fn write_f64<W>(writer: &mut W, val: f64) -> EncodeResult<()>
 fn encode_array<W>(writer: &mut W, arr: &[Value]) -> EncodeResult<()>
     where W: Write + ?Sized
 {
-    let mut buf = Vec::new();
+    let mut buf = vec![0; mem::size_of::<i32>()];
     for (key, val) in arr.iter().enumerate() {
         encode_value(&mut buf, &key.to_string(), val)?;
     }
 
-    write_i32(
-        writer,
-        (buf.len() + mem::size_of::<i32>() + mem::size_of::<u8>()) as i32
-    )?;
+    buf.write_u8(0)?;
+
+    let mut tmp = Vec::new();
+
+    write_i32(&mut tmp, buf.len() as i32)?;
+
+    for i in 0..tmp.len() {
+        buf[i] = tmp[i];
+    }
 
     writer.write_all(&buf)?;
-    writer.write_u8(0)?;
     Ok(())
 }
 
@@ -140,7 +151,8 @@ pub fn encode_value<W>(writer: &mut W, key: &str, val: &Value) -> EncodeResult<(
     write_cstring(writer, key)?;
 
     match *val {
-        Value::Double(v) => write_f64(writer, v),
+        Value::F32(v) => write_f32(writer, v),
+        Value::F64(v) => write_f64(writer, v),
         Value::I32(v) => write_i32(writer, v),
         Value::I64(v) => write_i64(writer, v),
         Value::U32(v) => write_u32(writer, v),
@@ -161,6 +173,7 @@ pub fn encode_value<W>(writer: &mut W, key: &str, val: &Value) -> EncodeResult<(
                 (v.timestamp() * 1000) + i64::from(v.nanosecond() / 1_000_000)
             )
         }
+        Value::MessageId(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
     }
 }
 
@@ -196,15 +209,15 @@ pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
 pub fn to_vec<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
     where T: Serialize
 {
-    let nson = to_nson(value)?;
+    let bson = to_nson(value)?;
 
-    if let Value::Message(object) = nson {
+    if let Value::Message(msg) = bson {
         let mut buf: Vec<u8> = Vec::new();
-        encode_message(&mut buf, &object)?;
+        encode_message(&mut buf, &msg)?;
         return Ok(buf)
     }
 
-    Err(EncodeError::InvalidMapKeyType(nson))
+    Err(EncodeError::InvalidMapKeyType(bson))
 }
 
 #[cfg(test)]
@@ -212,19 +225,20 @@ mod test {
     use std::io::Cursor;
     use crate::encode::encode_message;
     use crate::decode::decode_message;
+    use crate::msg;
 
     #[test]
     fn encode() {
-        let message = msg!{"aa": "bb"};
+        let msg = msg!{"aa": "bb", "cc": [1, 2, 3, 4]};
 
         let mut buf: Vec<u8> = Vec::new();
 
-        encode_message(&mut buf, &message).unwrap();
+        encode_message(&mut buf, &msg).unwrap();
 
         let mut reader = Cursor::new(buf);
 
-        let message2 = decode_message(&mut reader).unwrap();
+        let msg2 = decode_message(&mut reader).unwrap();
 
-        assert_eq!(message, message2);
+        assert_eq!(msg, msg2);
     }
 }

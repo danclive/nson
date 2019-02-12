@@ -10,6 +10,7 @@ use crate::spec::ElementType;
 use crate::value::{Value, Array};
 use crate::message::Message;
 use crate::serde_impl::decode::Decoder;
+use crate::message_id::MessageId;
 
 #[derive(Debug)]
 pub enum DecodeError {
@@ -144,6 +145,16 @@ pub(crate) fn read_u64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u64> {
     reader.read_u64::<LittleEndian>().map_err(From::from)
 }
 
+#[inline]
+pub(crate) fn read_f32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<f32> {
+    reader.read_f32::<LittleEndian>().map_err(From::from)
+}
+
+#[inline]
+pub(crate) fn read_f64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<f64> {
+    reader.read_f64::<LittleEndian>().map_err(From::from)
+}
+
 fn decode_array<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Array> {
     let mut arr = Array::new();
 
@@ -167,17 +178,20 @@ fn decode_array<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Array> {
             }
         }
 
-        let val = decode_nson(reader, tag)?;
+        let val = decode_value(reader, tag)?;
         arr.push(val)
     }
 
     Ok(arr)
 }
 
-fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value> {
+fn decode_value<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value> {
     match ElementType::from(tag) {
-        Some(ElementType::Double) => {
-            Ok(Value::Double(reader.read_f64::<LittleEndian>()?))
+        Some(ElementType::F32) => {
+            read_f32(reader).map(Value::F32)
+        }
+        Some(ElementType::F64) => {
+            read_f64(reader).map(Value::F64)
         }
         Some(ElementType::I32) => {
             read_i32(reader).map(Value::I32)
@@ -203,9 +217,9 @@ fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value>
         Some(ElementType::Binary) => {
             let len = read_i32(reader)?;
             let mut data = Vec::with_capacity(len as usize);
-            
+
             reader.take(len as u64).read_to_end(&mut data)?;
-            
+
             Ok(Value::Binary(data))
         }
         Some(ElementType::Boolean) => {
@@ -221,6 +235,15 @@ fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value>
             let time = read_i64(reader)?;
             Ok(Value::UTCDatetime(Utc.timestamp(time / 1000, (time % 1000) as u32 * 1_000_000)))
         }
+        Some(ElementType::MessageId) => {
+            let mut buf = [0; 12];
+
+            for x in &mut buf {
+                *x = reader.read_u8()?;
+            }
+
+            Ok(Value::MessageId(MessageId::with_bytes(buf)))
+        }
         None => {
             Err(DecodeError::UnrecognizedElementType(tag))
         }
@@ -228,7 +251,7 @@ fn decode_nson<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value>
 }
 
 pub fn decode_message<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Message> {
-    let mut message = Message::new();
+    let mut msg = Message::new();
 
     // disregard the length: using Read::take causes infinite type recursion
     read_i32(reader)?;
@@ -241,12 +264,12 @@ pub fn decode_message<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Message>
         }
 
         let key = read_cstring(reader)?;
-        let val = decode_nson(reader, tag)?;
+        let val = decode_value(reader, tag)?;
 
-        message.insert(key, val);
+        msg.insert(key, val);
     }
 
-    Ok(message)
+    Ok(msg)
 }
 
 pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
@@ -260,6 +283,6 @@ pub fn from_slice<'de, T>(slice: &[u8]) -> DecodeResult<T>
     where T: Deserialize<'de>
 {
     let mut reader = Cursor::new(slice);
-    let message = decode_message(&mut reader)?;
-    from_nson(Value::Message(message))
+    let msg = decode_message(&mut reader)?;
+    from_nson(Value::Message(msg))
 }

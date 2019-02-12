@@ -8,7 +8,7 @@ use serde::de::{self, Deserialize, Deserializer, Visitor, MapAccess, SeqAccess, 
                 DeserializeSeed, EnumAccess};
 use serde::de::{Error, Expected, Unexpected};
 
-use linked_hash_map::LinkedHashMap;
+use indexmap::IndexMap;
 
 use crate::value::{Value, Array, UTCDateTime};
 use crate::message::{Message, IntoIter};
@@ -56,11 +56,11 @@ impl<'de> Deserialize<'de> for Message {
     {
         deserializer
             .deserialize_map(ValueVisitor)
-            .and_then(|nson|
-                if let Value::Message(message) = nson {
+            .and_then(|bson|
+                if let Value::Message(message) = bson {
                     Ok(message)
                 } else {
-                    let err = format!("expected message, found extended JSON data type: {}", nson);
+                    let err = format!("expected message, found extended JSON data type: {}", bson);
                     Err(de::Error::invalid_type(Unexpected::Map, &&*err))
             })
     }
@@ -148,8 +148,13 @@ impl<'de> Visitor<'de> for ValueVisitor {
     }
 
     #[inline]
+    fn visit_f32<E>(self, value: f32) -> Result<Value, E> {
+        Ok(Value::F32(value))
+    }
+
+    #[inline]
     fn visit_f64<E>(self, value: f64) -> Result<Value, E> {
-        Ok(Value::Double(value))
+        Ok(Value::F64(value))
     }
 
     #[inline]
@@ -233,8 +238,8 @@ impl<'de> Visitor<'de> for MessageVisitor {
         where V: MapAccess<'de>
     {
         let mut inner = match visitor.size_hint() {
-            Some(size) => LinkedHashMap::with_capacity(size),
-            None => LinkedHashMap::new(),
+            Some(size) => IndexMap::with_capacity(size),
+            None => IndexMap::new(),
         };
 
         while let Some((key, value)) = visitor.next_entry()? {
@@ -306,7 +311,8 @@ impl<'de> Deserializer<'de> for Decoder {
         };
 
         match value {
-            Value::Double(v) => visitor.visit_f64(v),
+            Value::F32(v) => visitor.visit_f32(v),
+            Value::F64(v) => visitor.visit_f64(v),
             Value::I32(v) => visitor.visit_i32(v),
             Value::I64(v) => visitor.visit_i64(v),
             Value::U32(v) => visitor.visit_u32(v),

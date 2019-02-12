@@ -29,7 +29,8 @@ impl Serialize for Value {
         where S: Serializer
     {
         match *self {
-            Value::Double(v) => serializer.serialize_f64(v),
+            Value::F32(v) => serializer.serialize_f32(v),
+            Value::F64(v) => serializer.serialize_f64(v),
             Value::I32(v) => serializer.serialize_i32(v),
             Value::I64(v) => serializer.serialize_i64(v),
             Value::U32(v) => serializer.serialize_u32(v),
@@ -40,8 +41,8 @@ impl Serialize for Value {
             Value::Boolean(v) => serializer.serialize_bool(v),
             Value::Null => serializer.serialize_unit(),
             _ => {
-                let object = self.to_extended_message();
-                object.serialize(serializer)
+                let msg = self.to_extended_message();
+                msg.serialize(serializer)
             }
         }
     }
@@ -80,7 +81,7 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_u8(self, value: u8) -> EncodeResult<Value> {
-        self.serialize_u32(u32::from(value))
+       self.serialize_u32(u32::from(value))
     }
 
     #[inline]
@@ -100,7 +101,7 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_u32(self, value: u32) -> EncodeResult<Value> {
-        Ok(Value::U32(value))
+         Ok(Value::U32(value))
     }
 
     #[inline]
@@ -115,12 +116,12 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_f32(self, value: f32) -> EncodeResult<Value> {
-        self.serialize_f64(f64::from(value))
+        Ok(Value::F32(value))
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> EncodeResult<Value> {
-        Ok(Value::Double(value))
+        Ok(Value::F64(value))
     }
 
     #[inline]
@@ -432,8 +433,8 @@ impl Serialize for UTCDateTime {
         where S: Serializer
     {
         // Cloning a `DateTime` is extremely cheap
-        let message = Value::UTCDatetime(self.0);
-        message.serialize(serializer)
+        let value = Value::UTCDatetime(self.0);
+        value.serialize(serializer)
     }
 }
 

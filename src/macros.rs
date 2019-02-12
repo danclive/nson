@@ -1,4 +1,4 @@
-// NSON macro based on the serde_json json! implementation.
+// nson macro based on the serde_json json! implementation.
 
 /// Construct a value::Value value from a literal.
 ///
@@ -40,32 +40,32 @@ macro_rules! nson {
 
     // Next element is `null`.
     (@array [$($elems:expr,)*] null $($rest:tt)*) => {
-        nson!(@array [$($elems,)* nson!(null)] $($rest)*)
+        $crate::nson!(@array [$($elems,)* $crate::nson!(null)] $($rest)*)
     };
 
     // Next element is an array.
     (@array [$($elems:expr,)*] [$($array:tt)*] $($rest:tt)*) => {
-        nson!(@array [$($elems,)* nson!([$($array)*])] $($rest)*)
+        $crate::nson!(@array [$($elems,)* $crate::nson!([$($array)*])] $($rest)*)
     };
 
     // Next element is a map.
     (@array [$($elems:expr,)*] {$($map:tt)*} $($rest:tt)*) => {
-        nson!(@array [$($elems,)* nson!({$($map)*})] $($rest)*)
+        $crate::nson!(@array [$($elems,)* $crate::nson!({$($map)*})] $($rest)*)
     };
 
     // Next element is an expression followed by comma.
     (@array [$($elems:expr,)*] $next:expr, $($rest:tt)*) => {
-        nson!(@array [$($elems,)* nson!($next),] $($rest)*)
+        $crate::nson!(@array [$($elems,)* $crate::nson!($next),] $($rest)*)
     };
 
     // Last element is an expression with no trailing comma.
     (@array [$($elems:expr,)*] $last:expr) => {
-        nson!(@array [$($elems,)* nson!($last)])
+        $crate::nson!(@array [$($elems,)* $crate::nson!($last)])
     };
 
     // Comma after the most recent element.
     (@array [$($elems:expr),*] , $($rest:tt)*) => {
-        nson!(@array [$($elems,)*] $($rest)*)
+        $crate::nson!(@array [$($elems,)*] $($rest)*)
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -84,7 +84,7 @@ macro_rules! nson {
     // Insert the current entry followed by trailing comma.
     (@object $object:ident [$($key:tt)+] ($value:expr) , $($rest:tt)*) => {
         $object.insert_value(($($key)+).into(), $value);
-        nson!(@object $object () ($($rest)*) ($($rest)*));
+        $crate::nson!(@object $object () ($($rest)*) ($($rest)*));
     };
 
     // Insert the last entry without trailing comma.
@@ -94,65 +94,65 @@ macro_rules! nson {
 
     // Next value is `null`.
     (@object $object:ident ($($key:tt)+) (=> null $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!(null)) $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!(null)) $($rest)*);
     };
 
     (@object $object:ident ($($key:tt)+) (: null $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!(null)) $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!(null)) $($rest)*);
     };
 
     // Next value is an array.
     (@object $object:ident ($($key:tt)+) (=> [$($array:tt)*] $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!([$($array)*])) $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!([$($array)*])) $($rest)*);
     };
 
     (@object $object:ident ($($key:tt)+) (: [$($array:tt)*] $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!([$($array)*])) $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!([$($array)*])) $($rest)*);
     };
 
     // Next value is a map.
     (@object $object:ident ($($key:tt)+) (=> {$($map:tt)*} $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!({$($map)*})) $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!({$($map)*})) $($rest)*);
     };
 
     (@object $object:ident ($($key:tt)+) (: {$($map:tt)*} $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!({$($map)*})) $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!({$($map)*})) $($rest)*);
     };
 
     // Next value is an expression followed by comma.
     (@object $object:ident ($($key:tt)+) (=> $value:expr , $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!($value)) , $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!($value)) , $($rest)*);
     };
 
     (@object $object:ident ($($key:tt)+) (: $value:expr , $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!($value)) , $($rest)*);
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!($value)) , $($rest)*);
     };
 
     // Last value is an expression with no trailing comma.
     (@object $object:ident ($($key:tt)+) (=> $value:expr) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!($value)));
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!($value)));
     };
 
     (@object $object:ident ($($key:tt)+) (: $value:expr) $copy:tt) => {
-        nson!(@object $object [$($key)+] (nson!($value)));
+        $crate::nson!(@object $object [$($key)+] ($crate::nson!($value)));
     };
 
     // Missing value for last entry. Trigger a reasonable error message.
     (@object $object:ident ($($key:tt)+) (=>) $copy:tt) => {
         // "unexpected end of macro invocation"
-        nson!();
+        $crate::nson!();
     };
 
     (@object $object:ident ($($key:tt)+) (:) $copy:tt) => {
         // "unexpected end of macro invocation"
-        nson!();
+        $crate::nson!();
     };
 
     // Missing key-value separator and value for last entry.
     // Trigger a reasonable error message.
     (@object $object:ident ($($key:tt)+) () $copy:tt) => {
         // "unexpected end of macro invocation"
-        nson!();
+        $crate::nson!();
     };
 
     // Misplaced key-value separator. Trigger a reasonable error message.
@@ -175,16 +175,16 @@ macro_rules! nson {
     // Key is fully parenthesized. This avoids clippy double_parens false
     // positives because the parenthesization may be necessary here.
     (@object $object:ident () (($key:expr) => $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object ($key) (=> $($rest)*) (=> $($rest)*));
+        $crate::nson!(@object $object ($key) (=> $($rest)*) (=> $($rest)*));
     };
 
     (@object $object:ident () (($key:expr) : $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object ($key) (: $($rest)*) (: $($rest)*));
+        $crate::nson!(@object $object ($key) (: $($rest)*) (: $($rest)*));
     };
 
     // Munch a token into the current key.
     (@object $object:ident ($($key:tt)*) ($tt:tt $($rest:tt)*) $copy:tt) => {
-        nson!(@object $object ($($key)* $tt) ($($rest)*) ($($rest)*));
+        $crate::nson!(@object $object ($($key)* $tt) ($($rest)*) ($($rest)*));
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -202,15 +202,15 @@ macro_rules! nson {
     };
 
     ([ $($tt:tt)+ ]) => {
-        $crate::value::Value::Array(nson!(@array [] $($tt)+))
+        $crate::value::Value::Array($crate::nson!(@array [] $($tt)+))
     };
 
     ({}) => {
-        $crate::value::Value::Message(msg!{})
+        $crate::value::Value::Message($crate::msg!{})
     };
 
     ({$($tt:tt)+}) => {
-        $crate::value::Value::Message(msg!{$($tt)+});
+        $crate::value::Value::Message($crate::msg!{$($tt)+});
     };
 
     // Any Serialize type: numbers, strings, struct literals, variables etc.
@@ -220,7 +220,7 @@ macro_rules! nson {
     };
 }
 
-/// Construct a nson::Message value.
+/// Construct a msg::Message value.
 ///
 /// ```rust
 /// # #[macro_use]
@@ -244,7 +244,7 @@ macro_rules! msg {
     () => {{ $crate::message::Message::new() }};
     ( $($tt:tt)+ ) => {{
         let mut object = $crate::message::Message::new();
-        nson!(@object object () ($($tt)+) ($($tt)+));
+        $crate::nson!(@object object () ($($tt)+) ($($tt)+));
         object
     }};
 }

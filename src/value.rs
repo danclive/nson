@@ -9,10 +9,13 @@ use chrono::offset::TimeZone;
 use crate::message::Message;
 use crate::spec::ElementType;
 use crate::util::hex::{ToHex, FromHex};
+use crate::message_id::MessageId;
+use crate::msg;
 
 #[derive(Clone, PartialEq)]
 pub enum Value {
-    Double(f64),
+    F32(f32),
+    F64(f64),
     I32(i32),
     I64(i64),
     U32(u32),
@@ -25,6 +28,7 @@ pub enum Value {
     Binary(Vec<u8>),
     TimeStamp(i64),
     UTCDatetime(DateTime<Utc>),
+    MessageId(MessageId)
 }
 
 impl Eq for Value {}
@@ -37,7 +41,8 @@ pub struct Array {
 impl fmt::Debug for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Value::Double(d) => write!(fmt, "Double({:?})", d),
+            Value::F32(f) => write!(fmt, "F32({:?})", f),
+            Value::F64(f) => write!(fmt, "F64({:?})", f),
             Value::I32(i) => write!(fmt, "I32({:?})", i),
             Value::I64(i) => write!(fmt, "I64({:?})", i),
             Value::U32(u) => write!(fmt, "U32({:?})", u),
@@ -54,7 +59,8 @@ impl fmt::Debug for Value {
 
                 write!(fmt, "TimeStamp({}, {})", time, inc)
             },
-            Value::UTCDatetime(u) => write!(fmt, "UTCDatetime({:?})", u)
+            Value::UTCDatetime(u) => write!(fmt, "UTCDatetime({:?})", u),
+            Value::MessageId(ref id) => write!(fmt, "MessageId({})", id),
         }
     }
 }
@@ -62,7 +68,8 @@ impl fmt::Debug for Value {
 impl fmt::Display for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Value::Double(d) => write!(fmt, "{}", d),
+            Value::F32(f) => write!(fmt, "{}", f),
+            Value::F64(f) => write!(fmt, "{}", f),
             Value::I32(i) => write!(fmt, "{}", i),
             Value::I64(i) => write!(fmt, "{}", i),
             Value::U32(u) => write!(fmt, "{}", u),
@@ -93,20 +100,21 @@ impl fmt::Display for Value {
 
                 write!(fmt, "TimeStamp({}, {})", time, inc)
             },
-            Value::UTCDatetime(u) => write!(fmt, "Date({})", u)
+            Value::UTCDatetime(u) => write!(fmt, "Date({})", u),
+            Value::MessageId(ref id) => write!(fmt, "MessageId(\"{}\")", id),
         }
     }
 }
 
 impl From<f32> for Value {
     fn from(f: f32) -> Value {
-        Value::Double(f64::from(f))
+        Value::F32(f)
     }
 }
 
 impl From<f64> for Value {
     fn from(f: f64) -> Value {
-        Value::Double(f)
+        Value::F64(f)
     }
 }
 
@@ -182,6 +190,19 @@ impl From<DateTime<Utc>> for Value {
     }
 }
 
+impl From<[u8; 12]> for Value {
+    fn from(o: [u8; 12]) -> Value {
+        Value::MessageId(MessageId::with_bytes(o))
+    }
+}
+
+impl From<MessageId> for Value {
+    fn from(o: MessageId) -> Value {
+        Value::MessageId(o)
+    }
+}
+
+
 impl From<Vec<Vec<u8>>> for Value {
     fn from(vec: Vec<Vec<u8>>) -> Value {
         let array: Array = vec.into_iter().map(|v| v.into()).collect();
@@ -192,7 +213,8 @@ impl From<Vec<Vec<u8>>> for Value {
 impl Value {
     pub fn element_type(&self) -> ElementType {
         match *self {
-            Value::Double(..) => ElementType::Double,
+            Value::F32(..) => ElementType::F32,
+            Value::F64(..) => ElementType::F64,
             Value::I32(..) => ElementType::I32,
             Value::I64(..) => ElementType::I64,
             Value::U32(..) => ElementType::U32,
@@ -204,31 +226,134 @@ impl Value {
             Value::Null => ElementType::Null,
             Value::Binary(..) => ElementType::Binary,
             Value::TimeStamp(..) => ElementType::TimeStamp,
-            Value::UTCDatetime(..) => ElementType::UTCDatetime
+            Value::UTCDatetime(..) => ElementType::UTCDatetime,
+            Value::MessageId(..) => ElementType::MessageId
+        }
+    }
+
+    pub fn as_f32(&self) -> Option<f32> {
+        match *self {
+            Value::F32(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_f64(&self) -> Option<f64> {
+        match *self {
+            Value::F64(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_i32(&self) -> Option<i32> {
+        match *self {
+            Value::I32(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_u32(&self) -> Option<u32> {
+        match *self {
+            Value::U32(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_i64(&self) -> Option<i64> {
+        match *self {
+            Value::I64(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_u64(&self) -> Option<u64> {
+        match *self {
+            Value::U64(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match *self {
+            Value::String(ref s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn as_array(&self) -> Option<&Array> {
+        match *self {
+            Value::Array(ref v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_message(&self) -> Option<&Message> {
+        match *self {
+            Value::Message(ref v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        match *self {
+            Value::Boolean(ref v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_message_id(&self) -> Option<&MessageId> {
+        match *self {
+            Value::MessageId(ref v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_utc_date_time(&self) -> Option<&DateTime<Utc>> {
+        match *self {
+            Value::UTCDatetime(ref v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_timestamp(&self) -> Option<i64> {
+        match *self {
+            Value::TimeStamp(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_null(&self) -> Option<()> {
+        match *self {
+            Value::Null => Some(()),
+            _ => None,
         }
     }
 
     pub fn to_extended_message(&self) -> Message {
         match *self {
             Value::Binary(ref v) => {
-                msg! {
+                msg!{
                     "$binary": v.to_hex()
                 }
             }
             Value::TimeStamp(v) => {
                 let time = (v >> 32) as i32;
                 let inc = (v & 0xFFFF_FFFF) as i32;
-
-                msg! {
+                msg!{
                     "t": time,
                     "i": inc
                 }
             }
             Value::UTCDatetime(ref v) => {
-                msg! {
+                msg!{
                     "$date": {
-                        "$numberLong": (v.timestamp() * 1000) + i64::from(v.nanosecond()) / 1_000_000
+                        "$numberLong": v.timestamp() * 1000 + i64::from(v.nanosecond()) / 1_000_000
                     }
+                }
+            }
+            Value::MessageId(ref v) => {
+                msg!{
+                    "$id": v.to_string()
                 }
             }
             _ => panic!("Attempted conversion of invalid data type: {}", self)
@@ -252,6 +377,8 @@ impl Value {
                 return Value::Binary(FromHex::from_hex(hex.as_bytes()).unwrap());
             } else if let Ok(long) = values.get_message("$date").and_then(|inner| inner.get_i64("$numberLong")) {
                 return Value::UTCDatetime(Utc.timestamp(long / 1000, ((long % 1000) * 1_000_000) as u32));
+            } else if let Ok(hex) = values.get_str("$id") {
+                return Value::MessageId(MessageId::with_string(hex).unwrap());
             }
         }
 
