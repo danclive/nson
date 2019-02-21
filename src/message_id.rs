@@ -6,7 +6,8 @@ use std::{io, fmt, result, error};
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use libc;
-use rand::{self, Rng, OsRng};
+use rand::{self, Rng};
+use rand::rngs::OsRng;
 
 use crate::util::md5;
 use crate::util::hex::{ToHex, FromHex, FromHexError};
@@ -117,12 +118,12 @@ impl MessageId {
     pub fn machine_id(&self) -> u32 {
         let mut buf: [u8; 4] = [0; 4];
         buf[..3].clone_from_slice(&self.bytes[4..7]);
-        LittleEndian::read_u32(&buf)
+        BigEndian::read_u32(&buf)
     }
 
     /// Process ID of this MessageId
     pub fn process_id(&self) -> u16 {
-        LittleEndian::read_u16(&self.bytes[7..9])
+        BigEndian::read_u16(&self.bytes[7..9])
     }
 
     /// Convert this MessageId to a 12-byte hexadecimal string.

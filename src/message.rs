@@ -143,7 +143,7 @@ impl Message {
         self.inner.keys()
     }
 
-    pub fn value(&self) -> Values<String, Value> {
+    pub fn values(&self) -> Values<String, Value> {
         self.inner.values()
     }
 
@@ -251,7 +251,7 @@ impl Message {
         }
     }
 
-    pub fn get_time_stamp(&self, key: &str) -> Result<i64> {
+    pub fn get_timestamp(&self, key: &str) -> Result<i64> {
         match self.get(key) {
             Some(&Value::TimeStamp(v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
