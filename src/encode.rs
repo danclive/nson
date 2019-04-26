@@ -136,9 +136,10 @@ fn encode_array<W>(writer: &mut W, arr: &[Value]) -> EncodeResult<()>
 
     write_i32(&mut tmp, buf.len() as i32)?;
 
-    for i in 0..tmp.len() {
-        buf[i] = tmp[i];
-    }
+    // for i in 0..tmp.len() {
+    //     buf[i] = tmp[i];
+    // }
+    buf[..tmp.len()].clone_from_slice(&tmp[..]);
 
     writer.write_all(&buf)?;
     Ok(())
@@ -191,9 +192,10 @@ pub fn encode_message<'a, S, W, D> (writer: &mut W, message: D) -> EncodeResult<
 
     write_i32(&mut tmp, buf.len() as i32)?;
 
-    for i in 0..tmp.len() {
-        buf[i] = tmp[i];
-    }
+    // for i in 0..tmp.len() {
+    //     buf[i] = tmp[i];
+    // }
+    buf[..tmp.len()].clone_from_slice(&tmp[..]);
 
     writer.write_all(&buf)?;
     Ok(())

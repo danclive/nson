@@ -1,4 +1,4 @@
-pub use value::Value;
+pub use value::{Value, Array};
 pub use message::Message;
 
 mod macros;

@@ -2,6 +2,7 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::{f64, i64};
 use std::iter::FromIterator;
+use std::convert::Into;
 
 use chrono::{DateTime, Utc, Timelike};
 use chrono::offset::TimeZone;
@@ -33,7 +34,7 @@ pub enum Value {
 
 impl Eq for Value {}
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct Array {
     inner: Vec<Value>
 }
@@ -205,7 +206,7 @@ impl From<MessageId> for Value {
 
 impl From<Vec<Vec<u8>>> for Value {
     fn from(vec: Vec<Vec<u8>>) -> Value {
-        let array: Array = vec.into_iter().map(|v| v.into()).collect();
+        let array: Array = vec.into_iter().map(Into::into).collect();
         Value::Array(array)
     }
 }
@@ -409,6 +410,10 @@ impl Array {
         self.inner.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub fn push(&mut self, value: Value) {
         self.inner.push(value);
     }
@@ -417,7 +422,7 @@ impl Array {
         &self.inner
     }
 
-    pub fn into_mut(&mut self) -> &mut Vec<Value> {
+    pub fn as_mut_inner(&mut self) -> &mut Vec<Value> {
         &mut self.inner
     }
 
@@ -458,7 +463,7 @@ macro_rules! from_impls {
         $(
             impl From<Vec<$T>> for Array {
                 fn from(vec: Vec<$T>) -> Array {
-                    vec.into_iter().map(|v| v.into()).collect()
+                    vec.into_iter().map(Into::into).collect()
                 }
             }
         )+

@@ -287,9 +287,10 @@ impl Message {
 
         write_i32(&mut tmp, buf.len() as i32)?;
 
-        for i in 0..tmp.len() {
-            buf[i] = tmp[i];
-        }
+        // for i in 0..tmp.len() {
+        //     buf[i] = tmp[i];
+        // }
+        buf[..tmp.len()].clone_from_slice(&tmp[..]);
 
         Ok(buf)
     }

@@ -1,5 +1,5 @@
 //! MessageId
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::ffi::CStr;
 use std::{io, fmt, result, error};
@@ -13,7 +13,7 @@ use crate::util::md5;
 use crate::util::hex::{ToHex, FromHex, FromHexError};
 
 static mut MACHINE_BYTES: Option<[u8; 3]> = None;
-static OID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+static OID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct MessageId {
