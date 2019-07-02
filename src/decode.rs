@@ -101,7 +101,7 @@ impl error::Error for DecodeError {
 
 pub type DecodeResult<T> = Result<T, DecodeError>;
 
-pub(crate) fn read_string<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
+pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
     let len = reader.read_i32::<LittleEndian>()?;
 
     let mut s = String::with_capacity(len as usize - 1);
@@ -111,7 +111,7 @@ pub(crate) fn read_string<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Stri
     Ok(s)
 }
 
-pub(crate) fn read_cstring<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<String> {
+pub(crate) fn read_cstring(reader: &mut impl Read) -> DecodeResult<String> {
     let mut v = Vec::new();
 
     loop {
@@ -126,36 +126,36 @@ pub(crate) fn read_cstring<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Str
 }
 
 #[inline]
-pub(crate) fn read_i32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<i32> {
+pub(crate) fn read_i32(reader: &mut impl Read) -> DecodeResult<i32> {
     reader.read_i32::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn read_i64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<i64> {
+pub(crate) fn read_i64(reader: &mut impl Read) -> DecodeResult<i64> {
     reader.read_i64::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn read_u32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u32> {
+pub(crate) fn read_u32(reader: &mut impl Read) -> DecodeResult<u32> {
     reader.read_u32::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn read_u64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<u64> {
+pub(crate) fn read_u64(reader: &mut impl Read) -> DecodeResult<u64> {
     reader.read_u64::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn read_f32<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<f32> {
+pub(crate) fn read_f32(reader: &mut impl Read) -> DecodeResult<f32> {
     reader.read_f32::<LittleEndian>().map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn read_f64<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<f64> {
+pub(crate) fn read_f64(reader: &mut impl Read) -> DecodeResult<f64> {
     reader.read_f64::<LittleEndian>().map_err(From::from)
 }
 
-fn decode_array<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Array> {
+fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     let mut arr = Array::new();
 
     // disregard the length: using Read::take causes infinite type recursion
@@ -185,7 +185,7 @@ fn decode_array<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Array> {
     Ok(arr)
 }
 
-fn decode_value<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value> {
+fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
     match ElementType::from(tag) {
         Some(ElementType::F32) => {
             read_f32(reader).map(Value::F32)
@@ -250,7 +250,7 @@ fn decode_value<R: Read + ?Sized>(reader: &mut R, tag: u8) -> DecodeResult<Value
     }
 }
 
-pub fn decode_message<R: Read + ?Sized>(reader: &mut R) -> DecodeResult<Message> {
+pub fn decode_message(reader: &mut impl Read) -> DecodeResult<Message> {
     let mut msg = Message::new();
 
     // disregard the length: using Read::take causes infinite type recursion

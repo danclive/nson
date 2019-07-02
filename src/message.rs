@@ -267,11 +267,11 @@ impl Message {
         }
     }
 
-    pub fn encode(&self, writer: &mut (impl Write + ?Sized)) -> EncodeResult<()> {
+    pub fn encode(&self, writer: &mut impl Write) -> EncodeResult<()> {
         encode_message(writer, self)
     }
 
-    pub fn decode(reader: &mut (impl Read + ?Sized)) -> DecodeResult<Message> {
+    pub fn decode(reader: &mut impl Read) -> DecodeResult<Message> {
         decode_message(reader)
     }
 

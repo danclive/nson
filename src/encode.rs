@@ -63,68 +63,50 @@ impl ser::Error for EncodeError {
 
 pub type EncodeResult<T> = Result<T, EncodeError>;
 
-pub(crate) fn write_string<W>(writer: &mut W, s: &str) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_string(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
     writer.write_i32::<LittleEndian>(s.len() as i32 + 1)?;
     writer.write_all(s.as_bytes())?;
     writer.write_u8(0)?;
     Ok(())
 }
 
-pub(crate) fn write_cstring<W>(writer: &mut W, s: &str) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_cstring(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
     writer.write_all(s.as_bytes())?;
     writer.write_u8(0)?;
     Ok(())
 }
 
 #[inline]
-pub(crate) fn write_i32<W>(writer: &mut W, val: i32) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_i32(writer: &mut impl Write, val: i32) -> EncodeResult<()> {
     writer.write_i32::<LittleEndian>(val).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_u32<W>(writer: &mut W, val: u32) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_u32(writer: &mut impl Write, val: u32) -> EncodeResult<()> {
     writer.write_u32::<LittleEndian>(val).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_i64<W>(writer: &mut W, val: i64) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_i64(writer: &mut impl Write, val: i64) -> EncodeResult<()> {
     writer.write_i64::<LittleEndian>(val).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_u64<W>(writer: &mut W, val: u64) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_u64(writer: &mut impl Write, val: u64) -> EncodeResult<()> {
     writer.write_u64::<LittleEndian>(val).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_f32<W>(writer: &mut W, val: f32) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_f32(writer: &mut impl Write, val: f32) -> EncodeResult<()> {
     writer.write_f32::<LittleEndian>(val).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_f64<W>(writer: &mut W, val: f64) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
     writer.write_f64::<LittleEndian>(val).map_err(From::from)
 }
 
-fn encode_array<W>(writer: &mut W, arr: &[Value]) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+fn encode_array(writer: &mut impl Write, arr: &[Value]) -> EncodeResult<()> {
     let mut buf = vec![0; mem::size_of::<i32>()];
     for (key, val) in arr.iter().enumerate() {
         encode_value(&mut buf, &key.to_string(), val)?;
@@ -145,9 +127,7 @@ fn encode_array<W>(writer: &mut W, arr: &[Value]) -> EncodeResult<()>
     Ok(())
 }
 
-pub fn encode_value<W>(writer: &mut W, key: &str, val: &Value) -> EncodeResult<()>
-    where W: Write + ?Sized
-{
+pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeResult<()> {
     writer.write_u8(val.element_type() as u8)?;
     write_cstring(writer, key)?;
 
@@ -178,8 +158,8 @@ pub fn encode_value<W>(writer: &mut W, key: &str, val: &Value) -> EncodeResult<(
     }
 }
 
-pub fn encode_message<'a, S, W, D> (writer: &mut W, message: D) -> EncodeResult<()>
-    where S: AsRef<str> + 'a, W: Write + ?Sized, D: IntoIterator<Item = (&'a S, &'a Value)>
+pub fn encode_message<'a, S, D> (writer: &mut impl Write, message: D) -> EncodeResult<()>
+    where S: AsRef<str> + 'a, D: IntoIterator<Item = (&'a S, &'a Value)>
 {
     let mut buf = vec![0; mem::size_of::<i32>()];
     for (key, val) in message {
