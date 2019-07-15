@@ -213,7 +213,7 @@ fn gen_count() -> Result<[u8; 3]> {
     const MAX_U24: usize = 0x00FF_FFFF;
 
     if OID_COUNTER.load(Ordering::SeqCst) == 0 {
-        let mut rng = OsRng::new()?;
+        let mut rng = OsRng;
         let start = rng.gen_range(0, MAX_U24 + 1);
         OID_COUNTER.store(start, Ordering::SeqCst); 
     }
