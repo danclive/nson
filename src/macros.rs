@@ -241,9 +241,9 @@ macro_rules! nson {
 /// ```
 #[macro_export]
 macro_rules! msg {
-    () => {{ $crate::message::Message::new() }};
+    () => {{ $crate::message::Message::with_capacity(8) }};
     ( $($tt:tt)+ ) => {{
-        let mut object = $crate::message::Message::new();
+        let mut object = $crate::message::Message::with_capacity(8);
         $crate::nson!(@object object () ($($tt)+) ($($tt)+));
         object
     }};

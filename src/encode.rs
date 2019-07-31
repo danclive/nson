@@ -1,8 +1,7 @@
 use std::io::{self, Write};
 use std::fmt;
 use std::error;
-use std::mem;
-use std::i64;
+use std::{i32, i64};
 
 use byteorder::{LittleEndian, WriteBytesExt};
 use chrono::Timelike;
@@ -107,21 +106,18 @@ pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
 }
 
 fn encode_array(writer: &mut impl Write, arr: &[Value]) -> EncodeResult<()> {
-    let mut buf = vec![0; mem::size_of::<i32>()];
+    let mut buf = Vec::with_capacity(64);
+    write_i32(&mut buf, 0)?;
+
     for (key, val) in arr.iter().enumerate() {
         encode_value(&mut buf, &key.to_string(), val)?;
     }
 
     buf.write_u8(0)?;
 
-    let mut tmp = Vec::new();
+    let len_bytes = (buf.len() as i32).to_le_bytes();
 
-    write_i32(&mut tmp, buf.len() as i32)?;
-
-    // for i in 0..tmp.len() {
-    //     buf[i] = tmp[i];
-    // }
-    buf[..tmp.len()].clone_from_slice(&tmp[..]);
+    buf[..4].clone_from_slice(&len_bytes);
 
     writer.write_all(&buf)?;
     Ok(())
@@ -161,21 +157,18 @@ pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeRe
 pub fn encode_message<'a, S, D> (writer: &mut impl Write, message: D) -> EncodeResult<()>
     where S: AsRef<str> + 'a, D: IntoIterator<Item = (&'a S, &'a Value)>
 {
-    let mut buf = vec![0; mem::size_of::<i32>()];
+    let mut buf = Vec::with_capacity(64);
+    write_i32(&mut buf, 0)?;
+
     for (key, val) in message {
         encode_value(&mut buf, key.as_ref(), val)?;
     }
 
     buf.write_u8(0)?;
 
-    let mut tmp = Vec::new();
+    let len_bytes = (buf.len() as i32).to_le_bytes();
 
-    write_i32(&mut tmp, buf.len() as i32)?;
-
-    // for i in 0..tmp.len() {
-    //     buf[i] = tmp[i];
-    // }
-    buf[..tmp.len()].clone_from_slice(&tmp[..]);
+    buf[..4].clone_from_slice(&len_bytes);
 
     writer.write_all(&buf)?;
     Ok(())

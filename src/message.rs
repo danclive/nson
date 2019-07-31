@@ -1,7 +1,6 @@
 use std::result;
 use std::fmt;
 use std::io::{Write, Read, Cursor};
-use std::mem;
 use std::iter::{FromIterator, Extend};
 use std::cmp::Ordering;
 use std::ops::RangeFull;
@@ -35,6 +34,16 @@ impl Message {
         Message {
             inner: IndexMap::new()
         }
+    }
+
+    pub fn with_capacity(n: usize) -> Message {
+        Message {
+            inner: IndexMap::with_capacity(n)
+        }
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.inner.capacity()
     }
 
     pub fn clear(&mut self) {
@@ -276,21 +285,18 @@ impl Message {
     }
 
     pub fn to_vec(&self) -> EncodeResult<Vec<u8>> {
-        let mut buf = vec![0; mem::size_of::<i32>()];
+        let mut buf = Vec::with_capacity(64);
+        write_i32(&mut buf, 0)?;
+
         for (key, val) in self {
             encode_value(&mut buf, key.as_ref(), val)?;
         }
 
         buf.write_u8(0)?;
 
-        let mut tmp = Vec::new();
+        let len_bytes = (buf.len() as i32).to_le_bytes();
 
-        write_i32(&mut tmp, buf.len() as i32)?;
-
-        // for i in 0..tmp.len() {
-        //     buf[i] = tmp[i];
-        // }
-        buf[..tmp.len()].clone_from_slice(&tmp[..]);
+        buf[..4].clone_from_slice(&len_bytes);
 
         Ok(buf)
     }
@@ -374,7 +380,7 @@ impl<'a> IntoIterator for &'a mut Message {
 
 impl FromIterator<(String, Value)> for Message {
     fn from_iter<I: IntoIterator<Item=(String, Value)>>(iter: I) -> Self {
-        let mut msg = Message::new();
+        let mut msg = Message::with_capacity(8);
 
         for (k, v) in iter {
             msg.insert(k, v);
