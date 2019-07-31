@@ -229,7 +229,7 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             Ok(Value::Null)
         }
         Some(ElementType::TimeStamp) => {
-            read_i64(reader).map(Value::TimeStamp)
+            read_u64(reader).map(Value::TimeStamp)
         }
         Some(ElementType::UTCDatetime) => {
             let time = read_i64(reader)?;

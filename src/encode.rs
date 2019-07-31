@@ -147,7 +147,7 @@ pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeRe
             write_i32(writer, data.len() as i32)?;
             writer.write_all(data).map_err(From::from)
         }
-        Value::TimeStamp(v) => write_i64(writer, v),
+        Value::TimeStamp(v) => write_u64(writer, v),
         Value::UTCDatetime(ref v) => {
             write_i64(
                 writer,

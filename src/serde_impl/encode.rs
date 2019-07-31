@@ -4,7 +4,7 @@ use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeT
                  SerializeTupleVariant, SerializeMap, SerializeStruct, SerializeStructVariant};
 
 use crate::message::Message;
-use crate::value::{Value, Array, UTCDateTime};
+use crate::value::{Value, Array, UTCDateTime, TimeStamp};
 use crate::encode::to_nson;
 use crate::encode::EncodeError;
 use crate::encode::EncodeResult;
@@ -438,3 +438,13 @@ impl Serialize for UTCDateTime {
     }
 }
 
+impl Serialize for TimeStamp {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        let ts = ((self.timestamp.to_le() as u64) << 32) | (self.increment.to_le() as u64);
+        let doc = Value::TimeStamp(ts);
+        doc.serialize(serializer)
+    }
+}

@@ -30,7 +30,7 @@ impl MessageId {
     /// ```
     /// use nson::message_id::MessageId;
     ///
-    /// let id = MessageId::new().unwrap();
+    /// let id = MessageId::new();
     ///
     /// println!("{:?}", id);
     /// ```

@@ -27,7 +27,7 @@ pub enum Value {
     Boolean(bool),
     Null,
     Binary(Vec<u8>),
-    TimeStamp(i64),
+    TimeStamp(u64),
     UTCDatetime(DateTime<Utc>),
     MessageId(MessageId)
 }
@@ -55,8 +55,8 @@ impl fmt::Debug for Value {
             Value::Null => write!(fmt, "Null"),
             Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Value::TimeStamp(t) => {
-                let time = (t >> 32) as i32;
-                let inc = (t & 0x00FF_FFFF) as i32;
+                let time = (t >> 32) as u32;
+                let inc = (t & 0xFFFF_FFFF) as u32;
 
                 write!(fmt, "TimeStamp({}, {})", time, inc)
             },
@@ -96,8 +96,8 @@ impl fmt::Display for Value {
             Value::Null => write!(fmt, "null"),
             Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Value::TimeStamp(t) => {
-                let time = (t >> 32) as i32;
-                let inc = (t & 0x00FF_FFFF) as i32;
+                let time = (t >> 32) as u32;
+                let inc = (t & 0xFFFF_FFFF) as u32;
 
                 write!(fmt, "TimeStamp({}, {})", time, inc)
             },
@@ -203,20 +203,11 @@ impl From<MessageId> for Value {
     }
 }
 
-
-// impl From<Vec<Vec<u8>>> for Value {
-//     fn from(vec: Vec<Vec<u8>>) -> Value {
-//         let array: Array = vec.into_iter().map(Into::into).collect();
-//         Value::Array(array)
-//     }
-// }
-
 macro_rules! value_from_impls {
     ($($T:ty)+) => {
         $(
             impl From<Vec<$T>> for Value {
                 fn from(vec: Vec<$T>) -> Value {
-                    // vec.into_iter().map(|v| v.into()).collect()
                     Value::Array(vec.into())
                 }
             }
@@ -334,7 +325,7 @@ impl Value {
         }
     }
 
-    pub fn as_timestamp(&self) -> Option<i64> {
+    pub fn as_timestamp(&self) -> Option<u64> {
         match *self {
             Value::TimeStamp(v) => Some(v),
             _ => None,
@@ -356,8 +347,8 @@ impl Value {
                 }
             }
             Value::TimeStamp(v) => {
-                let time = (v >> 32) as i32;
-                let inc = (v & 0xFFFF_FFFF) as i32;
+                let time = (v >> 32) as u32;
+                let inc = (v & 0xFFFF_FFFF) as u32;
                 msg!{
                     "t": time,
                     "i": inc
@@ -381,13 +372,21 @@ impl Value {
 
     pub fn from_extended_message(values: Message) -> Value {
         if values.len() == 2 {
-            if let (Ok(t), Ok(i)) = (values.get_i32("t"), values.get_i32("i")) {
-                let timestamp = (i64::from(t) << 32) + i64::from(i);
+            if let (Ok(t), Ok(i)) = (values.get_u32("t"), values.get_u32("i")) {
+                let timestamp = (u64::from(t) << 32) + u64::from(i);
                 return Value::TimeStamp(timestamp);
+
+            } else if let (Ok(t), Ok(i)) = (values.get_u64("t"), values.get_u64("i")) {
+                let timestamp = (t << 32) + i;
+                return Value::TimeStamp(timestamp);
+
+            } else if let (Ok(t), Ok(i)) = (values.get_i32("t"), values.get_i32("i")) {
+                let timestamp = (i64::from(t) << 32) + i64::from(i);
+                return Value::TimeStamp(timestamp as u64);
 
             } else if let (Ok(t), Ok(i)) = (values.get_i64("t"), values.get_i64("i")) {
                 let timestamp = (t << 32) + i;
-                return Value::TimeStamp(timestamp);
+                return Value::TimeStamp(timestamp as u64);
 
             }
 
@@ -559,4 +558,10 @@ impl From<DateTime<Utc>> for UTCDateTime {
     fn from(x: DateTime<Utc>) -> Self {
         UTCDateTime(x)
     }
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone)]
+pub struct TimeStamp {
+    pub timestamp: u32,
+    pub increment: u32,
 }

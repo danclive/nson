@@ -251,7 +251,7 @@ impl Message {
         }
     }
 
-    pub fn get_timestamp(&self, key: &str) -> Result<i64> {
+    pub fn get_timestamp(&self, key: &str) -> Result<u64> {
         match self.get(key) {
             Some(&Value::TimeStamp(v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
