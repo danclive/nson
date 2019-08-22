@@ -90,7 +90,7 @@ impl error::Error for DecodeError {
             DecodeError::Unknown(ref inner) => inner,
         }
     }
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             DecodeError::IoError(ref inner) => Some(inner),
             DecodeError::FromUtf8Error(ref inner) => Some(inner),

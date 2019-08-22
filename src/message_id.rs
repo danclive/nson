@@ -132,6 +132,12 @@ impl MessageId {
     }
 }
 
+impl Default for MessageId {
+    fn default() -> Self {
+        MessageId::new()
+    }
+}
+
 impl fmt::Display for MessageId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(&self.to_hex())
@@ -275,7 +281,7 @@ impl error::Error for Error {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::ArgumentError(_) => None,
             Error::FromHexError(ref err) => Some(err),

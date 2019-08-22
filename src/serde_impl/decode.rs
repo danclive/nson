@@ -20,15 +20,15 @@ impl de::Error for DecodeError {
         DecodeError::Unknown(msg.to_string())
     }
 
-    fn invalid_type(_unexp: Unexpected, exp: &Expected) -> DecodeError {
+    fn invalid_type(_unexp: Unexpected, exp: &dyn Expected) -> DecodeError {
         DecodeError::InvalidType(exp.to_string())
     }
 
-    fn invalid_value(_unexp: Unexpected, exp: &Expected) -> DecodeError {
+    fn invalid_value(_unexp: Unexpected, exp: &dyn Expected) -> DecodeError {
         DecodeError::InvalidValue(exp.to_string())
     }
 
-    fn invalid_length(len: usize, exp: &Expected) -> DecodeError {
+    fn invalid_length(len: usize, exp: &dyn Expected) -> DecodeError {
         DecodeError::InvalidLength(len, exp.to_string())
     }
 
