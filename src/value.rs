@@ -222,7 +222,7 @@ value_from_impls! {
 
 impl Value {
     pub fn element_type(&self) -> ElementType {
-        match *self {
+        match self {
             Value::F32(..) => ElementType::F32,
             Value::F64(..) => ElementType::F64,
             Value::I32(..) => ElementType::I32,
@@ -242,105 +242,112 @@ impl Value {
     }
 
     pub fn as_f32(&self) -> Option<f32> {
-        match *self {
+        match self {
             Value::F32(ref v) => Some(*v),
-            _ => None,
+            _ => None
         }
     }
 
     pub fn as_f64(&self) -> Option<f64> {
-        match *self {
+        match self {
             Value::F64(ref v) => Some(*v),
-            _ => None,
+            _ => None
         }
     }
 
     pub fn as_i32(&self) -> Option<i32> {
-        match *self {
+        match self {
             Value::I32(ref v) => Some(*v),
-            _ => None,
+            _ => None
         }
     }
 
     pub fn as_u32(&self) -> Option<u32> {
-        match *self {
+        match self {
             Value::U32(ref v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_i64(&self) -> Option<i64> {
-        match *self {
+        match self {
             Value::I64(ref v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_u64(&self) -> Option<u64> {
-        match *self {
+        match self {
             Value::U64(ref v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_str(&self) -> Option<&str> {
-        match *self {
+        match self {
             Value::String(ref s) => Some(s),
             _ => None,
         }
     }
 
     pub fn as_array(&self) -> Option<&Array> {
-        match *self {
+        match self {
             Value::Array(ref v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_message(&self) -> Option<&Message> {
-        match *self {
+        match self {
             Value::Message(ref v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_bool(&self) -> Option<bool> {
-        match *self {
+        match self {
             Value::Boolean(ref v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_message_id(&self) -> Option<&MessageId> {
-        match *self {
+        match self {
             Value::MessageId(ref v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_utc_date_time(&self) -> Option<&DateTime<Utc>> {
-        match *self {
+        match self {
             Value::UTCDatetime(ref v) => Some(v),
-            _ => None,
+            _ => None
         }
     }
 
     pub fn as_timestamp(&self) -> Option<u64> {
-        match *self {
-            Value::TimeStamp(v) => Some(v),
-            _ => None,
+        match self {
+            Value::TimeStamp(v) => Some(*v),
+            _ => None
         }
     }
 
     pub fn as_null(&self) -> Option<()> {
-        match *self {
+        match self {
             Value::Null => Some(()),
-            _ => None,
+            _ => None
+        }
+    }
+
+    pub fn as_binary(&self) -> Option<&[u8]> {
+        match self {
+            Value::Binary(b) => Some(&b),
+            _ => None
         }
     }
 
     pub fn to_extended_message(&self) -> Message {
-        match *self {
+        match self {
             Value::Binary(ref v) => {
                 msg!{
                     "$binary": v.to_hex()
