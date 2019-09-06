@@ -217,7 +217,7 @@ macro_rules! value_from_impls {
 
 value_from_impls! {
     f32 f64 i32 i64 &str String &String Array
-    Message bool DateTime<Utc> Vec<u8>
+    Message bool DateTime<Utc> Vec<u8> MessageId
 }
 
 impl Value {
@@ -496,7 +496,7 @@ macro_rules! array_from_impls {
 
 array_from_impls! {
     f32 f64 i32 i64 u32 u64 &str String &String Array
-    Message bool DateTime<Utc> Vec<u8> Vec<Vec<u8>>
+    Message bool DateTime<Utc> Vec<u8> Vec<Vec<u8>> MessageId
 }
 
 impl IntoIterator for Array {

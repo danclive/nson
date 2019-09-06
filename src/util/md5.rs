@@ -77,13 +77,13 @@ impl Context {
         Context {
             handled: [0, 0],
             buffer: [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476],
-            input: unsafe { mem::uninitialized() },
+            input: unsafe { mem::MaybeUninit::uninit().assume_init() },
         }
     }
 
     /// Consume data.
     pub fn consume<T: AsRef<[u8]>>(&mut self, data: T) {
-        let mut input: [u32; 16] = unsafe { mem::uninitialized() };
+        let mut input: [u32; 16] = unsafe { mem::MaybeUninit::uninit().assume_init() };
         let mut k = ((self.handled[0] >> 3) & 0x3F) as usize;
 
         let data = data.as_ref();
@@ -118,7 +118,7 @@ impl Context {
 
     /// Finalize and return the digest.
     pub fn compute(mut self) -> Digest {
-        let mut input: [u32; 16] = unsafe { mem::uninitialized() };
+        let mut input: [u32; 16] = unsafe { mem::MaybeUninit::uninit().assume_init() };
         let k = ((self.handled[0] >> 3) & 0x3F) as usize;
 
         input[14] = self.handled[0];
@@ -136,7 +136,7 @@ impl Context {
         }
         transform(&mut self.buffer, &input);
 
-        let mut digest: [u8; 16] = unsafe { mem::uninitialized() };
+        let mut digest: [u8; 16] = unsafe { mem::MaybeUninit::uninit().assume_init() };
 
         let mut j = 0;
         for i in 0..4 {
