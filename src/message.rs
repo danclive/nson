@@ -99,7 +99,7 @@ impl Message {
     }
 
     pub fn remove(&mut self, key: &str) -> Option<Value> {
-        self.inner.remove(key)
+        self.inner.swap_remove(key)
     }
 
     pub fn swap_remove(&mut self, key: &str) -> Option<Value> {
@@ -108,6 +108,14 @@ impl Message {
 
     pub fn swap_remove_full(&mut self, key: &str) -> Option<(usize, String, Value)> {
         self.inner.swap_remove_full(key)
+    }
+
+    pub fn shift_remove(&mut self, key: &str) -> Option<Value> {
+        self.inner.shift_remove(key)
+    }
+
+    pub fn shift_remove_full(&mut self, key: &str) -> Option<(usize, String, Value)> {
+        self.inner.shift_remove_full(key)
     }
 
     pub fn pop(&mut self) -> Option<(String, Value)> {

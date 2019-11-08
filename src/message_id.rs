@@ -1,18 +1,15 @@
 //! MessageId
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::ffi::CStr;
 use std::{io, fmt, result, error};
 
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
-use libc;
-use rand::{self, Rng};
-use rand::rngs::OsRng;
+use byteorder::{ByteOrder, BigEndian};
 
-use crate::util::md5;
+use rand::{self, thread_rng, Rng};
+
 use crate::util::hex::{ToHex, FromHex, FromHexError};
 
-static mut MACHINE_BYTES: Option<[u8; 3]> = None;
+static mut MACHINE_BYTES: Option<[u8; 5]> = None;
 static OID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
@@ -37,7 +34,6 @@ impl MessageId {
     pub fn new() -> MessageId {
         let timestamp = timestamp();
         let machine_id = machine_id();
-        let process_id = process_id();
         let counter = gen_count();
 
         let mut buf: [u8; 12] = [0; 12];
@@ -50,9 +46,9 @@ impl MessageId {
         buf[4] = machine_id[0];
         buf[5] = machine_id[1];
         buf[6] = machine_id[2];
+        buf[7] = machine_id[3];
+        buf[8] = machine_id[4];
 
-        buf[7] = process_id[0];
-        buf[8] = process_id[1];
 
         buf[9] = counter[0];
         buf[10] = counter[1];
@@ -114,18 +110,6 @@ impl MessageId {
         BigEndian::read_u32(&self.bytes)
     }
 
-    /// Machine ID of this MessageId
-    pub fn machine_id(&self) -> u32 {
-        let mut buf: [u8; 4] = [0; 4];
-        buf[..3].clone_from_slice(&self.bytes[4..7]);
-        BigEndian::read_u32(&buf)
-    }
-
-    /// Process ID of this MessageId
-    pub fn process_id(&self) -> u16 {
-        BigEndian::read_u16(&self.bytes[7..9])
-    }
-
     /// Convert this MessageId to a 12-byte hexadecimal string.
     pub fn to_hex(&self) -> String {
         self.bytes.to_hex()
@@ -163,38 +147,16 @@ fn timestamp() -> [u8; 4] {
 }
 
 #[inline]
-fn hosename() -> Option<String> {
-
-    let len = 255;
-    let mut buf = Vec::<u8>::with_capacity(len);
-    let ptr = buf.as_mut_ptr() as *mut libc::c_char;
-
-    unsafe {
-        if libc::gethostname(ptr, len as libc::size_t) != 0 {
-            return None;
-        }
-
-        Some(CStr::from_ptr(ptr).to_string_lossy().to_string())
-    }
-}
-
-#[inline]
-fn machine_id() -> [u8; 3] {
+fn machine_id() -> [u8; 5] {
     unsafe {
         if let Some(bytes) = MACHINE_BYTES.as_ref() {
             return *bytes;
         }
     }
 
-    let hostname = hosename().expect("Can't get hostname!");
+    let mut buf = [0u8; 5];
 
-    let bytes = format!("{:x}", md5::compute(hostname.as_bytes()));
-    let bytes = bytes.as_bytes();
-
-    let mut buf = [0u8; 3];
-    buf[0] = bytes[0];
-    buf[1] = bytes[1];
-    buf[2] = bytes[2];
+    thread_rng().fill(&mut buf);
 
     unsafe {
         MACHINE_BYTES = Some(buf);
@@ -204,24 +166,13 @@ fn machine_id() -> [u8; 3] {
 }
 
 #[inline]
-fn process_id() -> [u8; 2] {
-    let pid = unsafe {
-        libc::getpid() as u16
-    };
-    let mut buf: [u8; 2] = [0; 2];
-    LittleEndian::write_u16(&mut buf, pid);
-    buf
-}
-
-#[inline]
 fn gen_count() -> [u8; 3] {
 
     const MAX_U24: usize = 0x00FF_FFFF;
 
     if OID_COUNTER.load(Ordering::SeqCst) == 0 {
-        let mut rng = OsRng;
-        let start = rng.gen_range(0, MAX_U24 + 1);
-        OID_COUNTER.store(start, Ordering::SeqCst); 
+        let start = thread_rng().gen_range(0, MAX_U24 + 1);
+        OID_COUNTER.store(start, Ordering::SeqCst);
     }
 
     let count = OID_COUNTER.fetch_add(1, Ordering::SeqCst);
