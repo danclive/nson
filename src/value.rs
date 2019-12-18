@@ -203,6 +203,12 @@ impl From<MessageId> for Value {
     }
 }
 
+impl<'a> From<&'a MessageId> for Value {
+    fn from(o: &'a MessageId) -> Value {
+        Value::MessageId(o.to_owned())
+    }
+}
+
 macro_rules! value_from_impls {
     ($($T:ty)+) => {
         $(
@@ -438,7 +444,11 @@ impl Array {
         self.inner.is_empty()
     }
 
-    pub fn push(&mut self, value: Value) {
+    pub fn push(&mut self, value: impl Into<Value>) {
+        self.inner.push(value.into());
+    }
+
+    pub fn push_value(&mut self, value: Value) {
         self.inner.push(value);
     }
 

@@ -1,14 +1,15 @@
 [package]
 name          = "nson"
-version       = "0.3.6"
+version       = "0.3.7"
 license       = "MIT"
 authors       = ["danc <dangcheng@hotmail.com>"]
 description   = "NSON is a lightweight data-interchange format like JSON or BSON"
 documentation = "https://docs.rs/queen-io"
-homepage      = "https://github.com/danc/nson"
-repository    = "https://github.com/danc/nson"
+homepage      = "https://github.com/danclive/nson"
+repository    = "https://github.com/danclive/nson"
 readme        = "README.md"
-keywords      = ["nson"]
+keywords      = ["nson", "serialization", "encoding"]
+categories    = ["encoding"]
 edition       = "2018"
 exclude       = [
   ".gitignore",

@@ -90,11 +90,11 @@ impl Message {
         self.inner.insert_full(key, value)
     }
 
-    pub fn insert<K: Into<String>, V: Into<Value>>(&mut self, key: K, value: V) -> Option<Value> {
+    pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) -> Option<Value> {
         self.insert_value(key.into(), value.into())
     }
 
-    pub fn insert_full<K: Into<String>, V: Into<Value>>(&mut self, key: K, value: V) -> (usize, Option<Value>) {
+    pub fn insert_full(&mut self, key: impl Into<String>, value: impl Into<Value>) -> (usize, Option<Value>) {
         self.insert_value_full(key.into(), value.into())
     }
 

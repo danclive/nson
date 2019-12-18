@@ -193,7 +193,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
         let mut values = Array::new();
 
         while let Some(elem) = visitor.next_element()? {
-            values.push(elem);
+            values.push_value(elem);
         }
 
         Ok(Value::Array(values))
