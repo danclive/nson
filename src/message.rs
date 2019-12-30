@@ -329,6 +329,10 @@ impl Message {
     pub fn swap_remove_index(&mut self, index: usize) -> Option<(String, Value)> {
         self.inner.swap_remove_index(index)
     }
+
+    pub fn shift_remove_index(&mut self, index: usize) -> Option<(String, Value)> {
+        self.inner.shift_remove_index(index)
+    }
 }
 
 impl fmt::Debug for Message {

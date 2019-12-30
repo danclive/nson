@@ -3,7 +3,7 @@ use std::io::{Read, Cursor};
 
 use byteorder::{LittleEndian, ReadBytesExt};
 use chrono::Utc;
-use chrono::offset::TimeZone;
+use chrono::offset::{TimeZone, LocalResult};
 use serde::de::Deserialize;
 
 use crate::spec::ElementType;
@@ -27,6 +27,8 @@ pub enum DecodeError {
     DuplicatedField(&'static str),
     UnknownVariant(String),
     InvalidValue(String),
+    InvalidTimestamp(i64),
+    AmbiguousTimestamp(i64),
     Unknown(String)
 }
 
@@ -66,6 +68,8 @@ impl fmt::Display for DecodeError {
             DecodeError::DuplicatedField(ref field) => write!(fmt, "Duplicated field `{}`", field),
             DecodeError::UnknownVariant(ref var) => write!(fmt, "Unknown variant `{}`", var),
             DecodeError::InvalidValue(ref desc) => desc.fmt(fmt),
+            DecodeError::InvalidTimestamp(ref i) => write!(fmt, "no such local time {}", i),
+            DecodeError::AmbiguousTimestamp(ref i) => write!(fmt, "ambiguous local time {}", i),
             DecodeError::Unknown(ref inner) => inner.fmt(fmt),
         }
     }
@@ -87,6 +91,8 @@ impl error::Error for DecodeError {
             DecodeError::DuplicatedField(_) => "Duplicated field",
             DecodeError::UnknownVariant(_) => "Unknown variant",
             DecodeError::InvalidValue(ref desc) => desc,
+            DecodeError::InvalidTimestamp(..) => "no such local time",
+            DecodeError::AmbiguousTimestamp(..) => "ambiguous local time",
             DecodeError::Unknown(ref inner) => inner,
         }
     }
@@ -103,6 +109,10 @@ pub type DecodeResult<T> = Result<T, DecodeError>;
 
 pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
     let len = reader.read_i32::<LittleEndian>()?;
+
+    if len < 0 || len > crate::MAX_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
+    }
 
     let mut s = String::with_capacity(len as usize - 1);
     reader.take(len as u64 - 1).read_to_string(&mut s)?;
@@ -216,6 +226,11 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
         }
         Some(ElementType::Binary) => {
             let len = read_i32(reader)?;
+
+            if len < 0 || len > crate::MAX_NSON_SIZE {
+                return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
+            }
+
             let mut data = Vec::with_capacity(len as usize);
 
             reader.take(len as u64).read_to_end(&mut data)?;
@@ -233,7 +248,16 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
         }
         Some(ElementType::UTCDatetime) => {
             let time = read_i64(reader)?;
-            Ok(Value::UTCDatetime(Utc.timestamp(time / 1000, (time % 1000) as u32 * 1_000_000)))
+
+            let sec = time / 1000;
+            let tmp_msec = time % 1000;
+            let msec = if tmp_msec < 0 { 1000 - tmp_msec } else { tmp_msec };
+
+            match Utc.timestamp_opt(sec, (msec as u32) * 1_000_000) {
+                LocalResult::None => Err(DecodeError::InvalidTimestamp(time)),
+                LocalResult::Ambiguous(..) => Err(DecodeError::AmbiguousTimestamp(time)),
+                LocalResult::Single(t) => Ok(Value::UTCDatetime(t)),
+            }
         }
         Some(ElementType::MessageId) => {
             let mut buf = [0; 12];

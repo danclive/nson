@@ -12,9 +12,11 @@ mod spec;
 pub mod util;
 pub mod message_id;
 
+pub const MAX_NSON_SIZE: i32 = 32 * 1024 * 1024; // 32 MB
+
 #[cfg(test)]
 mod test {
-    use serde_derive::{Serialize, Deserialize};
+    use serde::{Serialize, Deserialize};
     use serde_bytes;
     use crate::encode::to_nson;
     use crate::decode::from_nson;
