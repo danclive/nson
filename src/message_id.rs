@@ -1,5 +1,5 @@
 //! MessageId
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{io, fmt, result, error};
 
@@ -9,12 +9,12 @@ use rand::{self, thread_rng, Rng};
 
 use crate::util::hex::{ToHex, FromHex, FromHexError};
 
-static mut MACHINE_BYTES: Option<[u8; 5]> = None;
-static OID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+static mut IDENTIFY_BYTES: Option<[u8; 4]> = None;
+static COUNTER: AtomicU16 = AtomicU16::new(0);
 
 #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct MessageId {
-    bytes: [u8; 12]
+    bytes: [u8; 16]
 }
 
 pub type Result<T> = result::Result<T, Error>;
@@ -33,26 +33,16 @@ impl MessageId {
     /// ```
     pub fn new() -> MessageId {
         let timestamp = timestamp();
-        let machine_id = machine_id();
         let counter = gen_count();
+        let identify_bytes = identify_bytes();
+        let random_bytes = random_bytes();
 
-        let mut buf: [u8; 12] = [0; 12];
+        let mut buf: [u8; 16] = [0; 16];
 
-        buf[0] = timestamp[0];
-        buf[1] = timestamp[1];
-        buf[2] = timestamp[2];
-        buf[3] = timestamp[3];
-
-        buf[4] = machine_id[0];
-        buf[5] = machine_id[1];
-        buf[6] = machine_id[2];
-        buf[7] = machine_id[3];
-        buf[8] = machine_id[4];
-
-
-        buf[9] = counter[0];
-        buf[10] = counter[1];
-        buf[11] = counter[2];
+        buf[0..6].clone_from_slice(&timestamp[2..]);
+        buf[6..8].clone_from_slice(&counter);
+        buf[8..12].clone_from_slice(&identify_bytes);
+        buf[12..].clone_from_slice(&random_bytes);
 
         MessageId {
             bytes: buf
@@ -66,11 +56,11 @@ impl MessageId {
     /// ```
     /// use nson::message_id::MessageId;
     ///
-    /// let id = MessageId::with_bytes([90, 167, 114, 110, 99, 55, 51, 218, 65, 162, 186, 71]);
+    /// let id = MessageId::with_bytes([1, 111, 157, 189, 157, 247, 247, 220, 156, 134, 213, 115, 239, 90, 50, 156]);
     ///
-    /// assert_eq!(format!("{}", id), "5aa7726e633733da41a2ba47")
+    /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573ef5a329c")
     /// ```
-    pub fn with_bytes(bytes: [u8; 12]) -> Self {
+    pub fn with_bytes(bytes: [u8; 16]) -> Self {
         MessageId { bytes }
     }
 
@@ -82,17 +72,17 @@ impl MessageId {
     /// ```
     /// use nson::message_id::MessageId;
     ///
-    /// let id = MessageId::with_string("5932a005b4b4b4ac168cd9e4").unwrap();
+    /// let id = MessageId::with_string("016f9dbd9df7f7dc9c86d573ef5a329c").unwrap();
     ///
-    /// assert_eq!(format!("{}", id), "5932a005b4b4b4ac168cd9e4")
+    /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573ef5a329c")
     /// ```
     pub fn with_string(str: &str) -> Result<MessageId> {
         let bytes: Vec<u8> = FromHex::from_hex(str.as_bytes())?;
-        if bytes.len() != 12 {
-            return Err(Error::ArgumentError("Provided string must be a 12-byte hexadecimal string.".to_string()))
+        if bytes.len() != 16 {
+            return Err(Error::ArgumentError("Provided string must be a 16-byte hexadecimal string.".to_string()))
         }
 
-        let mut buf = [0u8; 12];
+        let mut buf = [0u8; 16];
         buf[..].copy_from_slice(&bytes);
 
         Ok(MessageId {
@@ -100,17 +90,25 @@ impl MessageId {
         })
     }
 
-    /// 12-byte binary representation of this MessageId.
-    pub fn bytes(&self) -> [u8; 12] {
+    /// 16-byte binary representation of this MessageId.
+    pub fn bytes(&self) -> [u8; 16] {
         self.bytes
     }
 
     /// Timstamp of this MessageId
-    pub fn timestamp(&self) -> u32 {
-        BigEndian::read_u32(&self.bytes)
+    pub fn timestamp(&self) -> u64 {
+        BigEndian::read_u48(&self.bytes)
     }
 
-    /// Convert this MessageId to a 12-byte hexadecimal string.
+    pub fn counter(&self) -> u16 {
+        BigEndian::read_u16(&self.bytes[6..8])
+    }
+
+    pub fn identify(&self) -> u32 {
+        BigEndian::read_u32(&self.bytes[8..12])
+    }
+
+    /// Convert this MessageId to a 16-byte hexadecimal string.
     pub fn to_hex(&self) -> String {
         self.bytes.to_hex()
     }
@@ -135,54 +133,58 @@ impl fmt::Debug for MessageId {
 }
 
 #[inline]
-fn timestamp() -> [u8; 4] {
+fn timestamp() -> [u8; 8] {
     let time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("SystemTime before UNIX EPOCH!")
-        .as_secs() as u32;
+        .as_millis() as u64;
 
-    let mut buf: [u8; 4] = [0; 4];
-    BigEndian::write_u32(&mut buf, time);
-    buf
+    time.to_be_bytes()
+}
+
+pub fn set_identify(identify: u32) {
+    let bytes = identify.to_be_bytes();
+    unsafe {
+       IDENTIFY_BYTES = Some(bytes);
+    }
 }
 
 #[inline]
-fn machine_id() -> [u8; 5] {
+fn identify_bytes() -> [u8; 4] {
     unsafe {
-        if let Some(bytes) = MACHINE_BYTES.as_ref() {
+        if let Some(bytes) = IDENTIFY_BYTES.as_ref() {
             return *bytes;
         }
     }
 
-    let mut buf = [0u8; 5];
+    let rand_num: u32 = thread_rng().gen();
 
-    thread_rng().fill(&mut buf);
+    let bytes = rand_num.to_be_bytes();
 
     unsafe {
-        MACHINE_BYTES = Some(buf);
+       IDENTIFY_BYTES = Some(bytes);
     }
 
-    buf
+    bytes
 }
 
 #[inline]
-fn gen_count() -> [u8; 3] {
+fn random_bytes() -> [u8; 4] {
+    let rand_num: u32 = thread_rng().gen();
 
-    const MAX_U24: usize = 0x00FF_FFFF;
+    rand_num.to_be_bytes()
+}
 
-    if OID_COUNTER.load(Ordering::SeqCst) == 0 {
-        let start = thread_rng().gen_range(0, MAX_U24 + 1);
-        OID_COUNTER.store(start, Ordering::SeqCst);
+#[inline]
+fn gen_count() -> [u8; 2] {
+    if COUNTER.load(Ordering::SeqCst) == 0 {
+        let start: u16 = thread_rng().gen();
+        COUNTER.store(start, Ordering::SeqCst);
     }
 
-    let count = OID_COUNTER.fetch_add(1, Ordering::SeqCst);
+    let count = COUNTER.fetch_add(1, Ordering::SeqCst);
 
-    let u = count % MAX_U24;
-
-    let mut buf: [u8; 8] = [0; 8];
-    BigEndian::write_u64(&mut buf, u as u64);
-
-    [buf[5], buf[6], buf[7]]
+    count.to_be_bytes()
 }
 
 #[derive(Debug)]

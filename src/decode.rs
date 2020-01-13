@@ -260,7 +260,7 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             }
         }
         Some(ElementType::MessageId) => {
-            let mut buf = [0; 12];
+            let mut buf = [0; 16];
 
             for x in &mut buf {
                 *x = reader.read_u8()?;

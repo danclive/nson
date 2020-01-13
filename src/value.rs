@@ -191,8 +191,8 @@ impl From<DateTime<Utc>> for Value {
     }
 }
 
-impl From<[u8; 12]> for Value {
-    fn from(o: [u8; 12]) -> Value {
+impl From<[u8; 16]> for Value {
+    fn from(o: [u8; 16]) -> Value {
         Value::MessageId(MessageId::with_bytes(o))
     }
 }
