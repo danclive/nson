@@ -6,13 +6,13 @@ use std::cmp::Ordering;
 use std::ops::RangeFull;
 
 use indexmap::IndexMap;
-use chrono::{DateTime, Utc};
 use byteorder::WriteBytesExt;
 
-use crate::value::{Value, Array};
-use crate::encode::{encode_message, encode_value, write_i32, EncodeResult};
-use crate::decode::{decode_message, DecodeResult};
+use crate::value::{Value, TimeStamp};
+use crate::array::Array;
 use crate::message_id::MessageId;
+use crate::encode::{encode_message, encode_value, write_u32, EncodeResult};
+use crate::decode::{decode_message, DecodeResult};
 
 pub use indexmap::map::{IntoIter, Iter, IterMut, Entry, Keys, Values, ValuesMut, Drain};
 
@@ -268,17 +268,9 @@ impl Message {
         }
     }
 
-    pub fn get_timestamp(&self, key: &str) -> Result<u64> {
+    pub fn get_timestamp(&self, key: &str) -> Result<&TimeStamp> {
         match self.get(key) {
-            Some(&Value::TimeStamp(v)) => Ok(v),
-            Some(_) => Err(Error::UnexpectedType),
-            None => Err(Error::NotPresent),
-        }
-    }
-
-    pub fn get_utc_datetime(&self, key: &str) -> Result<&DateTime<Utc>> {
-        match self.get(key) {
-            Some(&Value::UTCDatetime(ref v)) => Ok(v),
+            Some(&Value::TimeStamp(ref v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
             None => Err(Error::NotPresent),
         }
@@ -294,7 +286,7 @@ impl Message {
 
     pub fn to_vec(&self) -> EncodeResult<Vec<u8>> {
         let mut buf = Vec::with_capacity(64);
-        write_i32(&mut buf, 0)?;
+        write_u32(&mut buf, 0)?;
 
         for (key, val) in self {
             encode_value(&mut buf, key.as_ref(), val)?;
@@ -302,7 +294,7 @@ impl Message {
 
         buf.write_u8(0)?;
 
-        let len_bytes = (buf.len() as i32).to_le_bytes();
+        let len_bytes = (buf.len() as u32).to_le_bytes();
 
         buf[..4].clone_from_slice(&len_bytes);
 

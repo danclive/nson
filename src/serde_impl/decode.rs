@@ -10,8 +10,9 @@ use serde::de::{Error, Expected, Unexpected};
 
 use indexmap::IndexMap;
 
-use crate::value::{Value, Array, UTCDateTime, TimeStamp};
+use crate::value::{Value, TimeStamp};
 use crate::message::{Message, IntoIter};
+use crate::array::Array;
 use crate::decode::DecodeError;
 use crate::decode::DecodeResult;
 
@@ -688,31 +689,17 @@ impl<'de> Deserializer<'de> for MapDecoder {
     }
 }
 
-impl<'de> Deserialize<'de> for UTCDateTime {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
-    {
-        match Value::deserialize(deserializer)? {
-            Value::UTCDatetime(dt) => Ok(UTCDateTime(dt)),
-            _ => Err(D::Error::custom("expecting UtcDateTime")),
-        }
-    }
-}
-
 impl<'de> Deserialize<'de> for TimeStamp {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
         match Value::deserialize(deserializer)? {
             Value::TimeStamp(ts) => {
-                let ts = ts.to_le();
+                let ts = ts.0.to_le();
 
-                Ok(TimeStamp {
-                    timestamp: ((ts as u64) >> 32) as u32,
-                    increment: (ts & 0xFFFF_FFFF) as u32,
-                })
+                Ok(TimeStamp(ts))
             }
-            _ => Err(D::Error::custom("expecting UtcDateTime")),
+            _ => Err(D::Error::custom("expecting TimeStamp")),
         }
     }
 }

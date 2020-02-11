@@ -11,11 +11,10 @@ pub const BOOLEAN: u8 = 0x0A;
 pub const NULL: u8 = 0x0B;
 pub const BINARY: u8 = 0x0C;
 pub const TIMESTAMP: u8 = 0x0D;
-pub const UTC_DATETIME: u8 = 0x0E;
-pub const MESSAGE_ID: u8 = 0x0F;
+pub const MESSAGE_ID: u8 = 0x0E;
 
 #[repr(u8)]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ElementType {
     F32 = F32,
     F64 = F64,
@@ -30,7 +29,6 @@ pub enum ElementType {
     Null = NULL,
     Binary = BINARY,
     TimeStamp = TIMESTAMP,
-    UTCDatetime = UTC_DATETIME,
     MessageId = MESSAGE_ID
 }
 
@@ -50,7 +48,6 @@ impl ElementType {
             NULL => ElementType::Null,
             BINARY => ElementType::Binary,
             TIMESTAMP => ElementType::TimeStamp,
-            UTC_DATETIME => ElementType::UTCDatetime,
             MESSAGE_ID => ElementType::MessageId,
             _ => return None
         })

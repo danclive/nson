@@ -2,13 +2,13 @@ use std::{io, error, fmt, string};
 use std::io::{Read, Cursor};
 
 use byteorder::{LittleEndian, ReadBytesExt};
-use chrono::Utc;
-use chrono::offset::{TimeZone, LocalResult};
+
 use serde::de::Deserialize;
 
 use crate::spec::ElementType;
-use crate::value::{Value, Array};
+use crate::value::Value;
 use crate::message::Message;
+use crate::array::Array;
 use crate::serde_impl::decode::Decoder;
 use crate::message_id::MessageId;
 
@@ -108,9 +108,9 @@ impl error::Error for DecodeError {
 pub type DecodeResult<T> = Result<T, DecodeError>;
 
 pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
-    let len = reader.read_i32::<LittleEndian>()?;
+    let len = reader.read_u32::<LittleEndian>()?;
 
-    if len < 0 || len > crate::MAX_NSON_SIZE {
+    if len > crate::MAX_NSON_SIZE {
         return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
     }
 
@@ -165,11 +165,11 @@ pub(crate) fn read_f64(reader: &mut impl Read) -> DecodeResult<f64> {
     reader.read_f64::<LittleEndian>().map_err(From::from)
 }
 
-fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
+pub fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     let mut arr = Array::new();
 
     // disregard the length: using Read::take causes infinite type recursion
-    read_i32(reader)?;
+    read_u32(reader)?;
 
     loop {
         let tag = reader.read_u8()?;
@@ -225,9 +225,9 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             decode_array(reader).map(Value::Array)
         }
         Some(ElementType::Binary) => {
-            let len = read_i32(reader)?;
+            let len = read_u32(reader)?;
 
-            if len < 0 || len > crate::MAX_NSON_SIZE {
+            if len > crate::MAX_NSON_SIZE {
                 return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
             }
 
@@ -244,27 +244,11 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             Ok(Value::Null)
         }
         Some(ElementType::TimeStamp) => {
-            read_u64(reader).map(Value::TimeStamp)
-        }
-        Some(ElementType::UTCDatetime) => {
-            let time = read_i64(reader)?;
-
-            let sec = time / 1000;
-            let tmp_msec = time % 1000;
-            let msec = if tmp_msec < 0 { 1000 - tmp_msec } else { tmp_msec };
-
-            match Utc.timestamp_opt(sec, (msec as u32) * 1_000_000) {
-                LocalResult::None => Err(DecodeError::InvalidTimestamp(time)),
-                LocalResult::Ambiguous(..) => Err(DecodeError::AmbiguousTimestamp(time)),
-                LocalResult::Single(t) => Ok(Value::UTCDatetime(t)),
-            }
+            read_u64(reader).map(|v|v.into())
         }
         Some(ElementType::MessageId) => {
             let mut buf = [0; 16];
-
-            for x in &mut buf {
-                *x = reader.read_u8()?;
-            }
+            reader.read_exact(&mut buf)?;
 
             Ok(Value::MessageId(MessageId::with_bytes(buf)))
         }
@@ -278,7 +262,7 @@ pub fn decode_message(reader: &mut impl Read) -> DecodeResult<Message> {
     let mut msg = Message::new();
 
     // disregard the length: using Read::take causes infinite type recursion
-    read_i32(reader)?;
+    read_u32(reader)?;
 
     loop {
         let tag = reader.read_u8()?;

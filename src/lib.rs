@@ -1,10 +1,12 @@
-pub use value::{Value, Array};
+pub use value::Value;
 pub use message::Message;
+pub use array::Array;
 pub use message_id::MessageId;
 
 mod macros;
 pub mod value;
 pub mod message;
+pub mod array;
 pub mod encode;
 pub mod decode;
 pub mod serde_impl;
@@ -12,15 +14,17 @@ mod spec;
 pub mod util;
 pub mod message_id;
 
-pub const MAX_NSON_SIZE: i32 = 32 * 1024 * 1024; // 32 MB
+pub const MAX_NSON_SIZE: u32 = 32 * 1024 * 1024; // 32 MB
 
 #[cfg(test)]
 mod test {
     use serde::{Serialize, Deserialize};
     use serde_bytes;
+
     use crate::encode::to_nson;
     use crate::decode::from_nson;
     use crate::msg;
+    use crate::value::TimeStamp;
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub struct Foo {
@@ -29,7 +33,8 @@ mod test {
         c: f64,
         d: String,
         #[serde(with = "serde_bytes")]
-        e: Vec<u8>
+        e: Vec<u8>,
+        t: TimeStamp
     }
 
     #[test]
@@ -39,7 +44,8 @@ mod test {
             b: 2,
             c: 3.0,
             d: "4".to_string(),
-            e: vec![1, 2, 3, 4]
+            e: vec![1, 2, 3, 4],
+            t: TimeStamp(123)
         };
 
         let bson = to_nson(&foo).unwrap();

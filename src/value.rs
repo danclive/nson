@@ -1,13 +1,9 @@
 use std::fmt;
-use std::ops::{Deref, DerefMut};
 use std::{f64, i64};
-use std::iter::FromIterator;
 use std::convert::Into;
 
-use chrono::{DateTime, Utc, Timelike};
-use chrono::offset::TimeZone;
-
 use crate::message::Message;
+use crate::array::Array;
 use crate::spec::ElementType;
 use crate::util::hex::{ToHex, FromHex};
 use crate::message_id::MessageId;
@@ -27,17 +23,11 @@ pub enum Value {
     Boolean(bool),
     Null,
     Binary(Vec<u8>),
-    TimeStamp(u64),
-    UTCDatetime(DateTime<Utc>),
+    TimeStamp(TimeStamp),
     MessageId(MessageId)
 }
 
 impl Eq for Value {}
-
-#[derive(Clone, PartialEq, Default)]
-pub struct Array {
-    inner: Vec<Value>
-}
 
 impl fmt::Debug for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -55,12 +45,8 @@ impl fmt::Debug for Value {
             Value::Null => write!(fmt, "Null"),
             Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Value::TimeStamp(t) => {
-                let time = (t >> 32) as u32;
-                let inc = (t & 0xFFFF_FFFF) as u32;
-
-                write!(fmt, "TimeStamp({}, {})", time, inc)
+                write!(fmt, "TimeStamp({})", t.0)
             },
-            Value::UTCDatetime(u) => write!(fmt, "UTCDatetime({:?})", u),
             Value::MessageId(ref id) => write!(fmt, "MessageId({})", id),
         }
     }
@@ -96,12 +82,8 @@ impl fmt::Display for Value {
             Value::Null => write!(fmt, "null"),
             Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Value::TimeStamp(t) => {
-                let time = (t >> 32) as u32;
-                let inc = (t & 0xFFFF_FFFF) as u32;
-
-                write!(fmt, "TimeStamp({}, {})", time, inc)
+                write!(fmt, "TimeStamp({})", t.0)
             },
-            Value::UTCDatetime(u) => write!(fmt, "Date({})", u),
             Value::MessageId(ref id) => write!(fmt, "MessageId(\"{}\")", id),
         }
     }
@@ -185,15 +167,15 @@ impl From<Vec<u8>> for Value {
     }
 }
 
-impl From<DateTime<Utc>> for Value {
-    fn from(d: DateTime<Utc>) -> Value {
-        Value::UTCDatetime(d)
-    }
-}
-
 impl From<[u8; 16]> for Value {
     fn from(o: [u8; 16]) -> Value {
         Value::MessageId(MessageId::with_bytes(o))
+    }
+}
+
+impl From<TimeStamp> for Value {
+    fn from(t: TimeStamp) -> Self {
+        Value::TimeStamp(t)
     }
 }
 
@@ -223,7 +205,7 @@ macro_rules! value_from_impls {
 
 value_from_impls! {
     f32 f64 i32 i64 &str String &String Array
-    Message bool DateTime<Utc> Vec<u8> MessageId
+    Message bool Vec<u8> MessageId
 }
 
 impl Value {
@@ -242,7 +224,6 @@ impl Value {
             Value::Null => ElementType::Null,
             Value::Binary(..) => ElementType::Binary,
             Value::TimeStamp(..) => ElementType::TimeStamp,
-            Value::UTCDatetime(..) => ElementType::UTCDatetime,
             Value::MessageId(..) => ElementType::MessageId
         }
     }
@@ -324,14 +305,7 @@ impl Value {
         }
     }
 
-    pub fn as_utc_date_time(&self) -> Option<&DateTime<Utc>> {
-        match self {
-            Value::UTCDatetime(ref v) => Some(v),
-            _ => None
-        }
-    }
-
-    pub fn as_timestamp(&self) -> Option<u64> {
+    pub fn as_timestamp(&self) -> Option<TimeStamp> {
         match self {
             Value::TimeStamp(v) => Some(*v),
             _ => None
@@ -360,18 +334,11 @@ impl Value {
                 }
             }
             Value::TimeStamp(v) => {
-                let time = (v >> 32) as u32;
-                let inc = (v & 0xFFFF_FFFF) as u32;
+                let time = (v.0 >> 32) as u32;
+                let inc = (v.0 & 0xFFFF_FFFF) as u32;
                 msg!{
                     "t": time,
                     "i": inc
-                }
-            }
-            Value::UTCDatetime(ref v) => {
-                msg!{
-                    "$date": {
-                        "$numberLong": v.timestamp() * 1000 + i64::from(v.nanosecond()) / 1_000_000
-                    }
                 }
             }
             Value::MessageId(ref v) => {
@@ -387,27 +354,25 @@ impl Value {
         if values.len() == 2 {
             if let (Ok(t), Ok(i)) = (values.get_u32("t"), values.get_u32("i")) {
                 let timestamp = (u64::from(t) << 32) + u64::from(i);
-                return Value::TimeStamp(timestamp);
+                return Value::TimeStamp(timestamp.into());
 
             } else if let (Ok(t), Ok(i)) = (values.get_u64("t"), values.get_u64("i")) {
                 let timestamp = (t << 32) + i;
-                return Value::TimeStamp(timestamp);
+                return Value::TimeStamp(timestamp.into());
 
             } else if let (Ok(t), Ok(i)) = (values.get_i32("t"), values.get_i32("i")) {
                 let timestamp = (i64::from(t) << 32) + i64::from(i);
-                return Value::TimeStamp(timestamp as u64);
+                return Value::TimeStamp((timestamp as u64).into());
 
             } else if let (Ok(t), Ok(i)) = (values.get_i64("t"), values.get_i64("i")) {
                 let timestamp = (t << 32) + i;
-                return Value::TimeStamp(timestamp as u64);
+                return Value::TimeStamp((timestamp as u64).into());
 
             }
 
         } else if values.len() == 1 {
             if let Ok(hex) = values.get_str("$binary") {
                 return Value::Binary(FromHex::from_hex(hex.as_bytes()).unwrap());
-            } else if let Ok(long) = values.get_message("$date").and_then(|inner| inner.get_i64("$numberLong")) {
-                return Value::UTCDatetime(Utc.timestamp(long / 1000, ((long % 1000) * 1_000_000) as u32));
             } else if let Ok(hex) = values.get_str("$id") {
                 return Value::MessageId(MessageId::with_string(hex).unwrap());
             }
@@ -417,168 +382,11 @@ impl Value {
     }
 }
 
-impl Array {
-    pub fn new() -> Array {
-        Array {
-            inner: Vec::new()
-        }
-    }
-
-    pub fn with_capacity(capacity: usize) -> Array {
-        Array {
-            inner: Vec::with_capacity(capacity)
-        }
-    }
-
-    pub fn from_vec(vec: Vec<Value>) -> Array {
-        Array {
-            inner: vec
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.inner.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
-    }
-
-    pub fn push(&mut self, value: impl Into<Value>) {
-        self.inner.push(value.into());
-    }
-
-    pub fn push_value(&mut self, value: Value) {
-        self.inner.push(value);
-    }
-
-    pub fn inner(&self) -> &Vec<Value> {
-        &self.inner
-    }
-
-    pub fn as_mut_inner(&mut self) -> &mut Vec<Value> {
-        &mut self.inner
-    }
-
-    pub fn into_inner(self) -> Vec<Value> {
-        self.inner
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<'_, Value> {
-        self.into_iter()
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Value> {
-        self.into_iter()
-    }
-}
-
-impl fmt::Debug for Array {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.inner)
-    }
-}
-
-impl Deref for Array {
-    type Target = Vec<Value>;
-    fn deref(&self) -> &Vec<Value> {
-        &self.inner
-    }
-}
-
-impl DerefMut for Array {
-    fn deref_mut(&mut self) -> &mut Vec<Value> {
-        &mut self.inner
-    }
-}
-
-macro_rules! array_from_impls {
-    ($($T:ty)+) => {
-        $(
-            impl From<Vec<$T>> for Array {
-                fn from(vec: Vec<$T>) -> Array {
-                    vec.into_iter().map(Into::into).collect()
-                }
-            }
-        )+
-    }
-}
-
-array_from_impls! {
-    f32 f64 i32 i64 u32 u64 &str String &String Array
-    Message bool DateTime<Utc> Vec<u8> Vec<Vec<u8>> MessageId
-}
-
-impl IntoIterator for Array {
-    type Item = Value;
-    type IntoIter = std::vec::IntoIter<Value>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.inner.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a Array {
-    type Item = &'a Value;
-    type IntoIter = std::slice::Iter<'a, Value>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.inner.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a mut Array {
-    type Item = &'a mut Value;
-    type IntoIter = std::slice::IterMut<'a, Value>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.inner.iter_mut()
-    }
-}
-
-impl FromIterator<Value> for Array {
-    fn from_iter<I: IntoIterator<Item=Value>>(iter: I) -> Self {
-        let mut array = Array::new();
-
-        for i in iter {
-            array.push(i);
-        }
-
-        array
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct UTCDateTime(pub DateTime<Utc>);
-
-impl Deref for UTCDateTime {
-    type Target = DateTime<Utc>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for UTCDateTime {
-    fn deref_mut(&mut self) -> &mut DateTime<Utc> {
-        &mut self.0
-    }
-}
-
-impl Into<DateTime<Utc>> for UTCDateTime {
-    fn into(self) -> DateTime<Utc> {
-        self.0
-    }
-}
-
-impl From<DateTime<Utc>> for UTCDateTime {
-    fn from(x: DateTime<Utc>) -> Self {
-        UTCDateTime(x)
-    }
-}
-
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone)]
-pub struct TimeStamp {
-    pub timestamp: u32,
-    pub increment: u32,
+pub struct TimeStamp(pub u64);
+
+impl From<u64> for TimeStamp {
+    fn from(v: u64) -> Self {
+        TimeStamp(v)
+    }
 }

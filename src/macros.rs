@@ -30,12 +30,12 @@ macro_rules! nson {
 
     // Finished with trailing comma.
     (@array [$($elems:expr,)*]) => {
-        $crate::value::Array::from_vec(vec![$($elems,)*])
+        $crate::array::Array::from_vec(vec![$($elems,)*])
     };
 
     // Finished without trailing comma.
     (@array [$($elems:expr),*]) => {
-        $crate::value::Array::from_vec(vec![$($elems,)*])
+        $crate::array::Array::from_vec(vec![$($elems,)*])
     };
 
     // Next element is `null`.

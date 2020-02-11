@@ -4,7 +4,6 @@ use std::error;
 use std::{i32, i64};
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use chrono::Timelike;
 use serde::ser::{self, Serialize};
 
 use crate::value::Value;
@@ -63,7 +62,7 @@ impl ser::Error for EncodeError {
 pub type EncodeResult<T> = Result<T, EncodeError>;
 
 pub(crate) fn write_string(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
-    writer.write_i32::<LittleEndian>(s.len() as i32 + 1)?;
+    writer.write_u32::<LittleEndian>(s.len() as u32 + 1)?;
     writer.write_all(s.as_bytes())?;
     writer.write_u8(0)?;
     Ok(())
@@ -105,9 +104,9 @@ pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
     writer.write_f64::<LittleEndian>(val).map_err(From::from)
 }
 
-fn encode_array(writer: &mut impl Write, arr: &[Value]) -> EncodeResult<()> {
+pub fn encode_array(writer: &mut impl Write, arr: &[Value]) -> EncodeResult<()> {
     let mut buf = Vec::with_capacity(64);
-    write_i32(&mut buf, 0)?;
+    write_u32(&mut buf, 0)?;
 
     for (key, val) in arr.iter().enumerate() {
         encode_value(&mut buf, &key.to_string(), val)?;
@@ -140,16 +139,10 @@ pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeRe
         Value::Boolean(b) => writer.write_u8(if b { 0x01 } else { 0x00 }).map_err(From::from),
         Value::Null => Ok(()),
         Value::Binary(ref data) => {
-            write_i32(writer, data.len() as i32)?;
+            write_u32(writer, data.len() as u32)?;
             writer.write_all(data).map_err(From::from)
         }
-        Value::TimeStamp(v) => write_u64(writer, v),
-        Value::UTCDatetime(ref v) => {
-            write_i64(
-                writer,
-                (v.timestamp() * 1000) + i64::from(v.nanosecond() / 1_000_000)
-            )
-        }
+        Value::TimeStamp(v) => write_u64(writer, v.0),
         Value::MessageId(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
     }
 }
@@ -158,7 +151,7 @@ pub fn encode_message<'a, S, D> (writer: &mut impl Write, message: D) -> EncodeR
     where S: AsRef<str> + 'a, D: IntoIterator<Item = (&'a S, &'a Value)>
 {
     let mut buf = Vec::with_capacity(64);
-    write_i32(&mut buf, 0)?;
+    write_u32(&mut buf, 0)?;
 
     for (key, val) in message {
         encode_value(&mut buf, key.as_ref(), val)?;
@@ -166,7 +159,7 @@ pub fn encode_message<'a, S, D> (writer: &mut impl Write, message: D) -> EncodeR
 
     buf.write_u8(0)?;
 
-    let len_bytes = (buf.len() as i32).to_le_bytes();
+    let len_bytes = (buf.len() as u32).to_le_bytes();
 
     buf[..4].clone_from_slice(&len_bytes);
 

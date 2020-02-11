@@ -37,16 +37,14 @@ impl MessageId {
         let identify_bytes = identify_bytes();
         let random_bytes = random_bytes();
 
-        let mut buf: [u8; 16] = [0; 16];
+        let mut bytes: [u8; 16] = [0; 16];
 
-        buf[0..6].clone_from_slice(&timestamp[2..]);
-        buf[6..8].clone_from_slice(&counter);
-        buf[8..12].clone_from_slice(&identify_bytes);
-        buf[12..].clone_from_slice(&random_bytes);
+        bytes[0..6].clone_from_slice(&timestamp[2..]);
+        bytes[6..8].clone_from_slice(&counter);
+        bytes[8..12].clone_from_slice(&identify_bytes);
+        bytes[12..].clone_from_slice(&random_bytes);
 
-        MessageId {
-            bytes: buf
-        }
+        MessageId { bytes }
     }
 
     /// Generate an MessageId with bytes
@@ -129,6 +127,12 @@ impl fmt::Display for MessageId {
 impl fmt::Debug for MessageId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(&format!("MessageId({})", self.to_hex()))
+    }
+}
+
+impl From<[u8; 16]> for MessageId {
+    fn from(bytes: [u8; 16]) -> Self {
+        MessageId { bytes }
     }
 }
 
