@@ -91,7 +91,7 @@ impl Array {
 
         buf.write_u8(0)?;
 
-        let len_bytes = (buf.len() as i32).to_le_bytes();
+        let len_bytes = (buf.len() as u32).to_le_bytes();
 
         buf[..4].clone_from_slice(&len_bytes);
 

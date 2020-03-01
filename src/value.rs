@@ -191,6 +191,12 @@ impl<'a> From<&'a MessageId> for Value {
     }
 }
 
+impl<T: Into<Value>> From<Option<T>> for Value {
+    fn from(v: Option<T>) -> Value {
+        v.map(|v| v.into()).unwrap_or(Value::Null)
+    }
+}
+
 macro_rules! value_from_impls {
     ($($T:ty)+) => {
         $(
