@@ -76,26 +76,6 @@ impl fmt::Display for DecodeError {
 }
 
 impl error::Error for DecodeError {
-    fn description(&self) -> &str {
-        match *self {
-            DecodeError::IoError(ref inner) => inner.description(),
-            DecodeError::FromUtf8Error(ref inner) => inner.description(),
-            DecodeError::UnrecognizedElementType(_) => "Unrecognized element type",
-            DecodeError::InvalidArrayKey(_, _) => "Invalid array key",
-            DecodeError::ExpectedField(_) => "Expected a field",
-            DecodeError::UnknownField(_) => "Found an unknown field",
-            DecodeError::SyntaxError(ref inner) => inner,
-            DecodeError::EndOfStream => "End of stream",
-            DecodeError::InvalidType(ref desc) => desc,
-            DecodeError::InvalidLength(_, ref desc) => desc,
-            DecodeError::DuplicatedField(_) => "Duplicated field",
-            DecodeError::UnknownVariant(_) => "Unknown variant",
-            DecodeError::InvalidValue(ref desc) => desc,
-            DecodeError::InvalidTimestamp(..) => "no such local time",
-            DecodeError::AmbiguousTimestamp(..) => "ambiguous local time",
-            DecodeError::Unknown(ref inner) => inner,
-        }
-    }
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             DecodeError::IoError(ref inner) => Some(inner),

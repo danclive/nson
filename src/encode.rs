@@ -37,14 +37,6 @@ impl fmt::Display for EncodeError {
 }
 
 impl error::Error for EncodeError {
-    fn description(&self) -> &str {
-        match *self {
-            EncodeError::IoError(ref inner) => inner.description(),
-            EncodeError::InvalidMapKeyType(_) => "Invalid map key type",
-            EncodeError::Unknown(ref inner) => inner,
-            EncodeError::UnsupportedUnsignedType => "bson does not support unsigned type",
-        }
-    }
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             EncodeError::IoError(ref inner) => Some(inner),
@@ -114,7 +106,7 @@ pub fn encode_array(writer: &mut impl Write, arr: &[Value]) -> EncodeResult<()> 
 
     buf.write_u8(0)?;
 
-    let len_bytes = (buf.len() as i32).to_le_bytes();
+    let len_bytes = (buf.len() as u32).to_le_bytes();
 
     buf[..4].clone_from_slice(&len_bytes);
 

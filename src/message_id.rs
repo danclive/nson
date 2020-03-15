@@ -229,15 +229,6 @@ impl fmt::Display for Error {
 }
 
 impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::ArgumentError(ref err) => &err,
-            Error::FromHexError(ref err) => err.description(),
-            Error::IoError(ref err) => err.description(),
-            Error::RandError(ref err) => err.description()
-        }
-    }
-
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::ArgumentError(_) => None,

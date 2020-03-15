@@ -325,6 +325,10 @@ impl Message {
     pub fn shift_remove_index(&mut self, index: usize) -> Option<(String, Value)> {
         self.inner.shift_remove_index(index)
     }
+
+    pub fn bytes_size(&self) -> usize {
+        4 + self.iter().map(|(k, v)| { 1 + k.len() + 1 + v.bytes_size() }).sum::<usize>() + 1
+    }
 }
 
 impl fmt::Debug for Message {

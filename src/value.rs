@@ -31,7 +31,7 @@ impl Eq for Value {}
 
 impl fmt::Debug for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             Value::F32(f) => write!(fmt, "F32({:?})", f),
             Value::F64(f) => write!(fmt, "F64({:?})", f),
             Value::I32(i) => write!(fmt, "I32({:?})", i),
@@ -54,7 +54,7 @@ impl fmt::Debug for Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             Value::F32(f) => write!(fmt, "{}", f),
             Value::F64(f) => write!(fmt, "{}", f),
             Value::I32(i) => write!(fmt, "{}", i),
@@ -231,6 +231,25 @@ impl Value {
             Value::Binary(..) => ElementType::Binary,
             Value::TimeStamp(..) => ElementType::TimeStamp,
             Value::MessageId(..) => ElementType::MessageId
+        }
+    }
+
+    pub fn bytes_size(&self) -> usize {
+        match self {
+            Value::F32(_) => 4,
+            Value::F64(_) => 8,
+            Value::I32(_) => 4,
+            Value::I64(_) => 8,
+            Value::U32(_) => 4,
+            Value::U64(_) => 8,
+            Value::String(s) => 4 + s.len() + 1,
+            Value::Array(a) => a.bytes_size(),
+            Value::Message(m) => m.bytes_size(),
+            Value::Boolean(_) => 1,
+            Value::Null => 0,
+            Value::Binary(b) => 4 + b.len(),
+            Value::TimeStamp(_) => 8,
+            Value::MessageId(_) => 16
         }
     }
 

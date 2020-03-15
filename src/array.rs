@@ -102,6 +102,26 @@ impl Array {
         let mut reader = Cursor::new(slice);
         decode_array(&mut reader)
     }
+
+    pub fn bytes_size(&self) -> usize {
+        fn num_decimal_digits(n: usize) -> usize {
+            let mut digits = 1;
+            let mut curr = 10;
+
+            while curr < n {
+                curr = match curr.checked_mul(10) {
+                    Some(val) => val,
+                    None => break,
+                };
+
+                digits += 1;
+            }
+
+            digits
+        }
+
+        4 + self.iter().enumerate().map(|(k, v)| { 1 + num_decimal_digits(k) + 1 + v.bytes_size() }).sum::<usize>() + 1
+    }
 }
 
 impl fmt::Debug for Array {
