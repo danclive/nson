@@ -82,18 +82,16 @@ impl Array {
     }
 
     pub fn to_vec(&self) -> EncodeResult<Vec<u8>> {
-        let mut buf = Vec::with_capacity(64);
-        write_u32(&mut buf, 0)?;
+        let len = self.bytes_size();
+
+        let mut buf = Vec::with_capacity(len);
+        write_u32(&mut buf, len as u32)?;
 
         for (key, val) in self.iter().enumerate() {
             encode_value(&mut buf, &key.to_string(), val)?;
         }
 
         buf.write_u8(0)?;
-
-        let len_bytes = (buf.len() as u32).to_le_bytes();
-
-        buf[..4].clone_from_slice(&len_bytes);
 
         Ok(buf)
     }

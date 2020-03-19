@@ -7,6 +7,8 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use serde::ser::{self, Serialize};
 
 use crate::value::Value;
+use crate::message::Message;
+use crate::array::Array;
 use crate::serde_impl::encode::Encoder;
 
 #[derive(Debug)]
@@ -96,24 +98,6 @@ pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
     writer.write_f64::<LittleEndian>(val).map_err(From::from)
 }
 
-pub fn encode_array(writer: &mut impl Write, arr: &[Value]) -> EncodeResult<()> {
-    let mut buf = Vec::with_capacity(64);
-    write_u32(&mut buf, 0)?;
-
-    for (key, val) in arr.iter().enumerate() {
-        encode_value(&mut buf, &key.to_string(), val)?;
-    }
-
-    buf.write_u8(0)?;
-
-    let len_bytes = (buf.len() as u32).to_le_bytes();
-
-    buf[..4].clone_from_slice(&len_bytes);
-
-    writer.write_all(&buf)?;
-    Ok(())
-}
-
 pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeResult<()> {
     writer.write_u8(val.element_type() as u8)?;
     write_cstring(writer, key)?;
@@ -139,23 +123,31 @@ pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeRe
     }
 }
 
-pub fn encode_message<'a, S, D> (writer: &mut impl Write, message: D) -> EncodeResult<()>
-    where S: AsRef<str> + 'a, D: IntoIterator<Item = (&'a S, &'a Value)>
-{
-    let mut buf = Vec::with_capacity(64);
-    write_u32(&mut buf, 0)?;
+pub fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
+    let len = array.bytes_size();
 
-    for (key, val) in message {
-        encode_value(&mut buf, key.as_ref(), val)?;
+    write_u32(writer, len as u32)?;
+
+    for (key, val) in array.iter().enumerate() {
+        encode_value(writer, &key.to_string(), val)?;
     }
 
-    buf.write_u8(0)?;
+    writer.write_u8(0)?;
 
-    let len_bytes = (buf.len() as u32).to_le_bytes();
+    Ok(())
+}
 
-    buf[..4].clone_from_slice(&len_bytes);
+pub fn encode_message(writer: &mut impl Write, message: &Message) -> EncodeResult<()> {
+    let len = message.bytes_size();
 
-    writer.write_all(&buf)?;
+    write_u32(writer, len as u32)?;
+
+    for (key, val) in message {
+        encode_value(writer, key.as_ref(), val)?;
+    }
+
+    writer.write_u8(0)?;
+
     Ok(())
 }
 
