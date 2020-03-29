@@ -112,7 +112,7 @@ pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeRe
         Value::String(ref s) => write_string(writer, s),
         Value::Array(ref a) => encode_array(writer, a),
         Value::Message(ref o) => encode_message(writer, o),
-        Value::Boolean(b) => writer.write_u8(if b { 0x01 } else { 0x00 }).map_err(From::from),
+        Value::Bool(b) => writer.write_u8(if b { 0x01 } else { 0x00 }).map_err(From::from),
         Value::Null => Ok(()),
         Value::Binary(ref data) => {
             write_u32(writer, data.len() as u32)?;

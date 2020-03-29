@@ -20,7 +20,7 @@ pub enum Value {
     String(String),
     Array(Array),
     Message(Message),
-    Boolean(bool),
+    Bool(bool),
     Null,
     Binary(Vec<u8>),
     TimeStamp(TimeStamp),
@@ -41,7 +41,7 @@ impl fmt::Debug for Value {
             Value::String(ref s) => write!(fmt, "String({:?})", s),
             Value::Array(ref vec) => write!(fmt, "Array({:?})", vec),
             Value::Message(ref o) => write!(fmt, "{:?}", o),
-            Value::Boolean(b) => write!(fmt, "Boolean({:?})", b),
+            Value::Bool(b) => write!(fmt, "Boolean({:?})", b),
             Value::Null => write!(fmt, "Null"),
             Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Value::TimeStamp(t) => {
@@ -78,7 +78,7 @@ impl fmt::Display for Value {
                 write!(fmt, "]")
             },
             Value::Message(ref o) => write!(fmt, "{}", o),
-            Value::Boolean(b) => write!(fmt, "{}", b),
+            Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
             Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
             Value::TimeStamp(t) => {
@@ -157,7 +157,7 @@ impl From<Message> for Value {
 
 impl From<bool> for Value {
     fn from(b: bool) -> Value {
-        Value::Boolean(b)
+        Value::Bool(b)
     }
 }
 
@@ -226,7 +226,7 @@ impl Value {
             Value::String(..) => ElementType::String,
             Value::Array(..) => ElementType::Array,
             Value::Message(..) => ElementType::Message,
-            Value::Boolean(..) => ElementType::Boolean,
+            Value::Bool(..) => ElementType::Bool,
             Value::Null => ElementType::Null,
             Value::Binary(..) => ElementType::Binary,
             Value::TimeStamp(..) => ElementType::TimeStamp,
@@ -245,7 +245,7 @@ impl Value {
             Value::String(s) => 4 + s.len() + 1,
             Value::Array(a) => a.bytes_size(),
             Value::Message(m) => m.bytes_size(),
-            Value::Boolean(_) => 1,
+            Value::Bool(_) => 1,
             Value::Null => 0,
             Value::Binary(b) => 4 + b.len(),
             Value::TimeStamp(_) => 8,
@@ -318,7 +318,7 @@ impl Value {
 
     pub fn as_bool(&self) -> Option<bool> {
         match self {
-            Value::Boolean(ref v) => Some(*v),
+            Value::Bool(ref v) => Some(*v),
             _ => None,
         }
     }
@@ -355,20 +355,17 @@ impl Value {
         match self {
             Value::Binary(ref v) => {
                 msg!{
-                    "$binary": v.to_hex()
+                    "$bin": v.to_hex()
                 }
             }
             Value::TimeStamp(v) => {
-                let time = (v.0 >> 32) as u32;
-                let inc = (v.0 & 0xFFFF_FFFF) as u32;
                 msg!{
-                    "t": time,
-                    "i": inc
+                    "$tim": v.0
                 }
             }
             Value::MessageId(ref v) => {
                 msg!{
-                    "$id": v.to_string()
+                    "$mid": v.to_string()
                 }
             }
             _ => panic!("Attempted conversion of invalid data type: {}", self)
@@ -376,30 +373,23 @@ impl Value {
     }
 
     pub fn from_extended_message(values: Message) -> Value {
-        if values.len() == 2 {
-            if let (Ok(t), Ok(i)) = (values.get_u32("t"), values.get_u32("i")) {
-                let timestamp = (u64::from(t) << 32) + u64::from(i);
-                return Value::TimeStamp(timestamp.into());
-
-            } else if let (Ok(t), Ok(i)) = (values.get_u64("t"), values.get_u64("i")) {
-                let timestamp = (t << 32) + i;
-                return Value::TimeStamp(timestamp.into());
-
-            } else if let (Ok(t), Ok(i)) = (values.get_i32("t"), values.get_i32("i")) {
-                let timestamp = (i64::from(t) << 32) + i64::from(i);
-                return Value::TimeStamp((timestamp as u64).into());
-
-            } else if let (Ok(t), Ok(i)) = (values.get_i64("t"), values.get_i64("i")) {
-                let timestamp = (t << 32) + i;
-                return Value::TimeStamp((timestamp as u64).into());
-
-            }
-
-        } else if values.len() == 1 {
-            if let Ok(hex) = values.get_str("$binary") {
-                return Value::Binary(FromHex::from_hex(hex.as_bytes()).unwrap());
-            } else if let Ok(hex) = values.get_str("$id") {
-                return Value::MessageId(MessageId::with_string(hex).unwrap());
+        if values.len() == 1 {
+            if let Ok(timestamp) = values.get_i32("$tim") {
+                return Value::TimeStamp((timestamp as u64).into())
+            } else if let Ok(timestamp) = values.get_u32("$tim") {
+                return Value::TimeStamp((timestamp as u64).into())
+            } else if let Ok(timestamp) = values.get_i64("$tim") {
+                return Value::TimeStamp((timestamp as u64).into())
+            } else if let Ok(timestamp) = values.get_u64("$tim") {
+                return Value::TimeStamp(timestamp.into())
+            } else if let Ok(hex) = values.get_str("$bin") {
+                if let Ok(bin) = FromHex::from_hex(hex.as_bytes()) {
+                    return Value::Binary(bin)
+                }
+            } else if let Ok(hex) = values.get_str("$mid") {
+                if let Ok(message_id) = MessageId::with_string(hex) {
+                    return message_id.into()
+                }
             }
         }
 

@@ -7,7 +7,7 @@ pub const U64: u8 = 0x06;
 pub const STRING: u8 = 0x07;
 pub const ARRAY: u8 = 0x08;
 pub const MESSAGE: u8 = 0x09;
-pub const BOOLEAN: u8 = 0x0A;
+pub const BOOL: u8 = 0x0A;
 pub const NULL: u8 = 0x0B;
 pub const BINARY: u8 = 0x0C;
 pub const TIMESTAMP: u8 = 0x0D;
@@ -25,7 +25,7 @@ pub enum ElementType {
     String = STRING,
     Array = ARRAY,
     Message = MESSAGE,
-    Boolean = BOOLEAN,
+    Bool = BOOL,
     Null = NULL,
     Binary = BINARY,
     TimeStamp = TIMESTAMP,
@@ -44,7 +44,7 @@ impl ElementType {
             STRING => ElementType::String,
             ARRAY => ElementType::Array,
             MESSAGE => ElementType::Message,
-            BOOLEAN => ElementType::Boolean,
+            BOOL => ElementType::Bool,
             NULL => ElementType::Null,
             BINARY => ElementType::Binary,
             TIMESTAMP => ElementType::TimeStamp,

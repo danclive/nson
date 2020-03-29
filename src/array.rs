@@ -1,6 +1,5 @@
 use std::fmt;
 use std::ops::{Deref, DerefMut};
-use std::{f64, i64};
 use std::iter::FromIterator;
 use std::convert::Into;
 use std::io::{Write, Read, Cursor};
@@ -138,6 +137,12 @@ impl Deref for Array {
 impl DerefMut for Array {
     fn deref_mut(&mut self) -> &mut Vec<Value> {
         &mut self.inner
+    }
+}
+
+impl AsRef<Vec<Value>> for Array {
+    fn as_ref(&self) -> &Vec<Value> {
+        &self.inner
     }
 }
 

@@ -11,6 +11,7 @@ pub mod encode;
 pub mod decode;
 pub mod serde_impl;
 mod spec;
+mod json;
 pub mod util;
 pub mod message_id;
 
@@ -18,6 +19,7 @@ pub const MAX_NSON_SIZE: u32 = 32 * 1024 * 1024; // 32 MB
 
 #[cfg(test)]
 mod test {
+    use crate::message_id::MessageId;
     use serde::{Serialize, Deserialize};
     use serde_bytes;
 
@@ -34,7 +36,8 @@ mod test {
         d: String,
         #[serde(with = "serde_bytes")]
         e: Vec<u8>,
-        t: TimeStamp
+        t: TimeStamp,
+        i: MessageId
     }
 
     #[test]
@@ -45,11 +48,12 @@ mod test {
             c: 3.0,
             d: "4".to_string(),
             e: vec![1, 2, 3, 4],
-            t: TimeStamp(123)
+            t: TimeStamp(123),
+            i: MessageId::new()
         };
 
-        let bson = to_nson(&foo).unwrap();
-        let foo2: Foo = from_nson(bson).unwrap();
+        let nson = to_nson(&foo).unwrap();
+        let foo2: Foo = from_nson(nson).unwrap();
 
         assert_eq!(foo, foo2);
     }

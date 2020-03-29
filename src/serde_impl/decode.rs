@@ -13,6 +13,7 @@ use indexmap::IndexMap;
 use crate::value::{Value, TimeStamp};
 use crate::message::{Message, IntoIter};
 use crate::array::Array;
+use crate::message_id::MessageId;
 use crate::decode::DecodeError;
 use crate::decode::DecodeResult;
 
@@ -89,7 +90,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
     fn visit_bool<E>(self, value: bool) -> Result<Value, E>
         where E: Error
     {
-        Ok(Value::Boolean(value))
+        Ok(Value::Bool(value))
     }
 
     #[inline]
@@ -338,7 +339,7 @@ impl<'de> Deserializer<'de> for Decoder {
                     }
                 )
             }
-            Value::Boolean(v) => visitor.visit_bool(v),
+            Value::Bool(v) => visitor.visit_bool(v),
             Value::Null => visitor.visit_unit(),
             Value::Binary(v) => visitor.visit_bytes(&v),
             _ => {
@@ -507,7 +508,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
             };
             de.deserialize_any(visitor)
         } else {
-            return Err(DecodeError::InvalidType("expected a tuple".to_string()));
+            Err(DecodeError::InvalidType("expected a tuple".to_string()))
         }
     }
 
@@ -526,7 +527,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
             };
             de.deserialize_any(visitor)
         } else {
-            return Err(DecodeError::InvalidType("expected a struct".to_string()));
+            Err(DecodeError::InvalidType("expected a struct".to_string()))
         }
     }
 }
@@ -700,6 +701,19 @@ impl<'de> Deserialize<'de> for TimeStamp {
                 Ok(TimeStamp(ts))
             }
             _ => Err(D::Error::custom("expecting TimeStamp")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for MessageId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        match Value::deserialize(deserializer)? {
+            Value::MessageId(id) => {
+                Ok(id)
+            }
+            _ => Err(D::Error::custom("expecting MessageId")),
         }
     }
 }

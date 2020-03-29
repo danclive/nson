@@ -217,8 +217,8 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
 
             Ok(Value::Binary(data))
         }
-        Some(ElementType::Boolean) => {
-            Ok(Value::Boolean(reader.read_u8()? != 0))
+        Some(ElementType::Bool) => {
+            Ok(Value::Bool(reader.read_u8()? != 0))
         }
         Some(ElementType::Null) => {
             Ok(Value::Null)

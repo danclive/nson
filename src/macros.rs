@@ -83,13 +83,13 @@ macro_rules! nson {
 
     // Insert the current entry followed by trailing comma.
     (@object $object:ident [$($key:tt)+] ($value:expr) , $($rest:tt)*) => {
-        $object.insert_value(($($key)+).into(), $value);
+        $object.insert_value(($($key)+), $value);
         $crate::nson!(@object $object () ($($rest)*) ($($rest)*));
     };
 
     // Insert the last entry without trailing comma.
     (@object $object:ident [$($key:tt)+] ($value:expr)) => {
-        $object.insert_value(($($key)+).into(), $value);
+        $object.insert_value(($($key)+), $value);
     };
 
     // Next value is `null`.

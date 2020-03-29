@@ -6,6 +6,7 @@ use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeT
 use crate::message::Message;
 use crate::value::{Value, TimeStamp};
 use crate::array::Array;
+use crate::message_id::MessageId;
 use crate::encode::to_nson;
 use crate::encode::EncodeError;
 use crate::encode::EncodeResult;
@@ -39,7 +40,7 @@ impl Serialize for Value {
             Value::String(ref v) => serializer.serialize_str(v),
             Value::Array(ref v) => v.serialize(serializer),
             Value::Message(ref v) => v.serialize(serializer),
-            Value::Boolean(v) => serializer.serialize_bool(v),
+            Value::Bool(v) => serializer.serialize_bool(v),
             Value::Null => serializer.serialize_unit(),
             _ => {
                 let msg = self.to_extended_message();
@@ -72,7 +73,7 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_bool(self, value: bool) -> EncodeResult<Value> {
-        Ok(Value::Boolean(value))
+        Ok(Value::Bool(value))
     }
 
     #[inline]
@@ -435,5 +436,16 @@ impl Serialize for TimeStamp {
     {
         let doc = Value::TimeStamp(*self);
         doc.serialize(serializer)
+    }
+}
+
+impl Serialize for MessageId {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        let mut ser = serializer.serialize_map(Some(1))?;
+        ser.serialize_entry("$mid", &self.to_hex())?;
+        ser.end()
     }
 }

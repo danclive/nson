@@ -78,16 +78,16 @@ impl Message {
         self.inner.is_empty()
     }
 
-    pub fn entry(&mut self, key: String) -> Entry<String, Value> {
-        self.inner.entry(key)
+    pub fn entry(&mut self, key: impl Into<String>) -> Entry<String, Value> {
+        self.inner.entry(key.into())
     }
 
-    pub fn insert_value(&mut self, key: String, value: Value) -> Option<Value> {
-        self.inner.insert(key, value)
+    pub fn insert_value(&mut self, key: impl Into<String>, value: Value) -> Option<Value> {
+        self.inner.insert(key.into(), value)
     }
 
-    pub fn insert_value_full(&mut self, key: String, value: Value) -> (usize, Option<Value>) {
-        self.inner.insert_full(key, value)
+    pub fn insert_value_full(&mut self, key: impl Into<String>, value: impl Into<Value>) -> (usize, Option<Value>) {
+        self.inner.insert_full(key.into(), value.into())
     }
 
     pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) -> Option<Value> {
@@ -242,7 +242,7 @@ impl Message {
 
     pub fn get_bool(&self, key: &str) -> Result<bool> {
         match self.get(key) {
-            Some(&Value::Boolean(v)) => Ok(v),
+            Some(&Value::Bool(v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
             None => Err(Error::NotPresent),
         }
