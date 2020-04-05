@@ -19,6 +19,12 @@ pub struct MessageId {
 
 pub type Result<T> = result::Result<T, Error>;
 
+// Unique incrementing MessageId.
+//
+//   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+//   |       timestamp       | count |    random     |   identify    |
+//   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+//     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
 impl MessageId {
     /// Generate a new MessageId
     /// 
@@ -34,15 +40,15 @@ impl MessageId {
     pub fn new() -> MessageId {
         let timestamp = timestamp();
         let counter = gen_count();
-        let identify_bytes = identify_bytes();
         let random_bytes = random_bytes();
+        let identify_bytes = identify_bytes();
 
         let mut bytes: [u8; 16] = [0; 16];
 
         bytes[0..6].clone_from_slice(&timestamp[2..]);
         bytes[6..8].clone_from_slice(&counter);
-        bytes[8..12].clone_from_slice(&identify_bytes);
-        bytes[12..].clone_from_slice(&random_bytes);
+        bytes[8..12].clone_from_slice(&random_bytes);
+        bytes[12..].clone_from_slice(&identify_bytes);
 
         MessageId { bytes }
     }
@@ -102,8 +108,12 @@ impl MessageId {
         BigEndian::read_u16(&self.bytes[6..8])
     }
 
-    pub fn identify(&self) -> u32 {
+    pub fn random(&self) -> u32 {
         BigEndian::read_u32(&self.bytes[8..12])
+    }
+
+    pub fn identify(&self) -> u32 {
+        BigEndian::read_u32(&self.bytes[12..])
     }
 
     /// Convert this MessageId to a 16-byte hexadecimal string.
