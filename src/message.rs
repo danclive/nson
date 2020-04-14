@@ -304,8 +304,8 @@ impl Message {
         decode_message(&mut reader)
     }
 
-    pub fn extend<I: Into<Message>>(&mut self, iter: I) {
-        self.inner.extend(iter.into());
+    pub fn extend<I: IntoIterator<Item=(String, Value)>>(&mut self, iter: I) {
+        self.inner.extend(iter);
     }
 
     pub fn get_index(&self, index: usize) -> Option<(&String, &Value)> {
@@ -416,5 +416,17 @@ mod test {
         let msg2 = Message::from_slice(&vec).unwrap();
 
         assert_eq!(msg, msg2);
+    }
+
+    #[test]
+    fn extend() {
+        let msg1 = msg!{"aa": "bb"};
+
+        let mut msg2 = msg!{"cc": "dd"};
+        msg2.extend(msg1);
+
+        let msg3 = msg!{"aa": "bb", "cc": "dd"};
+
+        assert_eq!(msg2, msg3);
     }
 }
