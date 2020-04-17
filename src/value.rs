@@ -1,6 +1,7 @@
 use std::fmt;
 use std::{f64, i64};
 use std::convert::Into;
+use std::ops::{DerefMut, Deref};
 
 use crate::message::Message;
 use crate::array::Array;
@@ -412,5 +413,18 @@ pub struct Binary(pub Vec<u8>);
 impl From<Vec<u8>> for Binary {
     fn from(v: Vec<u8>) -> Self {
         Binary(v)
+    }
+}
+
+impl Deref for Binary {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Vec<u8> {
+        &self.0
+    }
+}
+
+impl DerefMut for Binary {
+    fn deref_mut(&mut self) -> &mut Vec<u8> {
+        &mut self.0
     }
 }
