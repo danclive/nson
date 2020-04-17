@@ -1,5 +1,6 @@
 use nson::{msg, Value, MessageId};
-use nson::value::TimeStamp;
+use nson::value::{TimeStamp, Binary};
+use nson::{encode, decode};
 
 #[test]
 fn size_bytes() {
@@ -24,4 +25,17 @@ fn size_bytes() {
     };
 
     assert_eq!(msg.to_vec().unwrap().len(), msg.bytes_size());
+}
+
+#[test]
+fn binary() {
+    let bytes: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 8];
+
+    let binary: Binary = bytes.into();
+
+    let nson = encode::to_nson(&binary).unwrap();
+
+    let binary2: Binary = decode::from_nson(nson).unwrap();
+
+    assert!(binary == binary2);
 }

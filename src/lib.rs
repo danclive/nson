@@ -1,4 +1,4 @@
-pub use value::Value;
+pub use value::{Value, Binary};
 pub use message::Message;
 pub use array::Array;
 pub use message_id::MessageId;
@@ -26,7 +26,7 @@ mod test {
     use crate::encode::to_nson;
     use crate::decode::from_nson;
     use crate::msg;
-    use crate::value::TimeStamp;
+    use crate::value::{TimeStamp, Binary};
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub struct Foo {
@@ -37,7 +37,8 @@ mod test {
         #[serde(with = "serde_bytes")]
         e: Vec<u8>,
         t: TimeStamp,
-        i: MessageId
+        i: MessageId,
+        j: Binary
     }
 
     #[test]
@@ -49,10 +50,12 @@ mod test {
             d: "4".to_string(),
             e: vec![1, 2, 3, 4],
             t: TimeStamp(123),
-            i: MessageId::new()
+            i: MessageId::new(),
+            j : vec![5, 6, 7, 8].into()
         };
 
         let nson = to_nson(&foo).unwrap();
+
         let foo2: Foo = from_nson(nson).unwrap();
 
         assert_eq!(foo, foo2);
@@ -64,7 +67,7 @@ mod test {
         let msg = msg!{"aa": "bb", "byte": byte.clone()};
         let byte2 = msg.get_binary("byte").unwrap();
 
-        assert_eq!(&byte, byte2);
+        assert_eq!(byte, byte2.0);
 
         let mut msg2 = msg!{"aa": "bb"};
         msg2.insert("byte", byte);

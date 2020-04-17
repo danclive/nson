@@ -6,7 +6,7 @@ use std::{i32, i64};
 use byteorder::{LittleEndian, WriteBytesExt};
 use serde::ser::{self, Serialize};
 
-use crate::value::Value;
+use crate::value::{Value, Binary};
 use crate::message::Message;
 use crate::array::Array;
 use crate::serde_impl::encode::Encoder;
@@ -29,11 +29,11 @@ impl fmt::Display for EncodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             EncodeError::IoError(ref inner) => inner.fmt(fmt),
-            EncodeError::InvalidMapKeyType(ref bson) => {
-                write!(fmt, "Invalid map key type: {:?}", bson)
+            EncodeError::InvalidMapKeyType(ref nson) => {
+                write!(fmt, "Invalid map key type: {:?}", nson)
             }
             EncodeError::Unknown(ref inner) => inner.fmt(fmt),
-            EncodeError::UnsupportedUnsignedType => write!(fmt, "bson does not support unsigned type"),
+            EncodeError::UnsupportedUnsignedType => write!(fmt, "nson does not support unsigned type"),
         }
     }
 }
@@ -114,10 +114,7 @@ pub fn encode_value(writer: &mut impl Write, key: &str, val: &Value) -> EncodeRe
         Value::Message(ref o) => encode_message(writer, o),
         Value::Bool(b) => writer.write_u8(if b { 0x01 } else { 0x00 }).map_err(From::from),
         Value::Null => Ok(()),
-        Value::Binary(ref data) => {
-            write_u32(writer, data.len() as u32)?;
-            writer.write_all(data).map_err(From::from)
-        }
+        Value::Binary(ref binary) => encode_binary(writer, binary),
         Value::TimeStamp(v) => write_u64(writer, v.0),
         Value::MessageId(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
     }
@@ -135,6 +132,11 @@ pub fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> 
     writer.write_u8(0)?;
 
     Ok(())
+}
+
+pub fn encode_binary(writer: &mut impl Write, binary: &Binary) -> EncodeResult<()> {
+    write_u32(writer, binary.0.len() as u32)?;
+    writer.write_all(&binary.0).map_err(From::from)
 }
 
 pub fn encode_message(writer: &mut impl Write, message: &Message) -> EncodeResult<()> {
@@ -161,15 +163,15 @@ pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
 pub fn to_vec<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
     where T: Serialize
 {
-    let bson = to_nson(value)?;
+    let nson = to_nson(value)?;
 
-    if let Value::Message(msg) = bson {
+    if let Value::Message(msg) = nson {
         let mut buf: Vec<u8> = Vec::new();
         encode_message(&mut buf, &msg)?;
         return Ok(buf)
     }
 
-    Err(EncodeError::InvalidMapKeyType(bson))
+    Err(EncodeError::InvalidMapKeyType(nson))
 }
 
 #[cfg(test)]

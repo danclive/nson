@@ -22,7 +22,7 @@ pub enum Value {
     Message(Message),
     Bool(bool),
     Null,
-    Binary(Vec<u8>),
+    Binary(Binary),
     TimeStamp(TimeStamp),
     MessageId(MessageId)
 }
@@ -43,7 +43,7 @@ impl fmt::Debug for Value {
             Value::Message(ref o) => write!(fmt, "{:?}", o),
             Value::Bool(b) => write!(fmt, "Boolean({:?})", b),
             Value::Null => write!(fmt, "Null"),
-            Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
+            Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.0.to_hex()),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
@@ -80,7 +80,7 @@ impl fmt::Display for Value {
             Value::Message(ref o) => write!(fmt, "{}", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
-            Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.to_hex()),
+            Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.0.to_hex()),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
@@ -163,7 +163,7 @@ impl From<bool> for Value {
 
 impl From<Vec<u8>> for Value {
     fn from(b: Vec<u8>) -> Value {
-        Value::Binary(b)
+        Value::Binary(Binary(b))
     }
 }
 
@@ -247,7 +247,7 @@ impl Value {
             Value::Message(m) => m.bytes_size(),
             Value::Bool(_) => 1,
             Value::Null => 0,
-            Value::Binary(b) => 4 + b.len(),
+            Value::Binary(b) => 4 + b.0.len(),
             Value::TimeStamp(_) => 8,
             Value::MessageId(_) => 16
         }
@@ -344,7 +344,7 @@ impl Value {
         }
     }
 
-    pub fn as_binary(&self) -> Option<&[u8]> {
+    pub fn as_binary(&self) -> Option<&Binary> {
         match self {
             Value::Binary(b) => Some(&b),
             _ => None
@@ -355,7 +355,7 @@ impl Value {
         match self {
             Value::Binary(ref v) => {
                 msg!{
-                    "$bin": v.to_hex()
+                    "$bin": v.0.to_hex()
                 }
             }
             Value::TimeStamp(v) => {
@@ -384,7 +384,7 @@ impl Value {
                 return Value::TimeStamp(timestamp.into())
             } else if let Ok(hex) = values.get_str("$bin") {
                 if let Ok(bin) = FromHex::from_hex(hex.as_bytes()) {
-                    return Value::Binary(bin)
+                    return Value::Binary(Binary(bin))
                 }
             } else if let Ok(hex) = values.get_str("$mid") {
                 if let Ok(message_id) = MessageId::with_string(hex) {
@@ -403,5 +403,14 @@ pub struct TimeStamp(pub u64);
 impl From<u64> for TimeStamp {
     fn from(v: u64) -> Self {
         TimeStamp(v)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone)]
+pub struct Binary(pub Vec<u8>);
+
+impl From<Vec<u8>> for Binary {
+    fn from(v: Vec<u8>) -> Self {
+        Binary(v)
     }
 }

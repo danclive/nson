@@ -10,7 +10,7 @@ use serde::de::{Error, Expected, Unexpected};
 
 use indexmap::IndexMap;
 
-use crate::value::{Value, TimeStamp};
+use crate::value::{Value, TimeStamp, Binary};
 use crate::message::{Message, IntoIter};
 use crate::array::Array;
 use crate::message_id::MessageId;
@@ -58,11 +58,11 @@ impl<'de> Deserialize<'de> for Message {
     {
         deserializer
             .deserialize_map(ValueVisitor)
-            .and_then(|bson|
-                if let Value::Message(message) = bson {
+            .and_then(|nson|
+                if let Value::Message(message) = nson {
                     Ok(message)
                 } else {
-                    let err = format!("expected message, found extended JSON data type: {}", bson);
+                    let err = format!("expected message, found extended JSON data type: {}", nson);
                     Err(de::Error::invalid_type(Unexpected::Map, &&*err))
             })
     }
@@ -208,6 +208,13 @@ impl<'de> Visitor<'de> for ValueVisitor {
         let values = MessageVisitor::new().visit_map(visitor)?;
         Ok(Value::from_extended_message(values))
     }
+
+    #[inline]
+    fn visit_bytes<E>(self, v: &[u8]) -> Result<Value, E>
+        where E: Error,
+    {
+        Ok(Value::Binary(v.to_vec().into()))
+    }
 }
 
 #[derive(Default)]
@@ -341,7 +348,7 @@ impl<'de> Deserializer<'de> for Decoder {
             }
             Value::Bool(v) => visitor.visit_bool(v),
             Value::Null => visitor.visit_unit(),
-            Value::Binary(v) => visitor.visit_bytes(&v),
+            Value::Binary(v) => visitor.visit_bytes(&v.0),
             _ => {
                 let message = value.to_extended_message();
                 let len = message.len();
@@ -712,6 +719,19 @@ impl<'de> Deserialize<'de> for MessageId {
         match Value::deserialize(deserializer)? {
             Value::MessageId(id) => {
                 Ok(id)
+            }
+            _ => Err(D::Error::custom("expecting MessageId")),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Binary {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        match Value::deserialize(deserializer)? {
+            Value::Binary(v) => {
+                Ok(v)
             }
             _ => Err(D::Error::custom("expecting MessageId")),
         }

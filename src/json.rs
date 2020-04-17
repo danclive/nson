@@ -23,7 +23,7 @@ impl From<Value> for serde_json::Value {
             }
             Value::Bool(v) => json!(v),
             Value::Null => json!(null),
-            Value::Binary(v) => json!({"$bin": base64::encode(v)}),
+            Value::Binary(v) => json!({"$bin": base64::encode(v.0)}),
             Value::TimeStamp(v) => json!({"$tim": v}),
             Value::MessageId(v) => json!({"$mid": v.to_hex()})
         }

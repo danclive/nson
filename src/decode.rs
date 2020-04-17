@@ -6,7 +6,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use serde::de::Deserialize;
 
 use crate::spec::ElementType;
-use crate::value::Value;
+use crate::value::{Value, Binary};
 use crate::message::Message;
 use crate::array::Array;
 use crate::serde_impl::decode::Decoder;
@@ -175,6 +175,20 @@ pub fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     Ok(arr)
 }
 
+pub fn decode_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
+    let len = read_u32(reader)?;
+
+    if len > crate::MAX_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
+    }
+
+    let mut data = Vec::with_capacity(len as usize);
+
+    reader.take(len as u64).read_to_end(&mut data)?;
+
+    Ok(Binary(data))
+}
+
 fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
     match ElementType::from(tag) {
         Some(ElementType::F32) => {
@@ -205,17 +219,7 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             decode_array(reader).map(Value::Array)
         }
         Some(ElementType::Binary) => {
-            let len = read_u32(reader)?;
-
-            if len > crate::MAX_NSON_SIZE {
-                return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
-            }
-
-            let mut data = Vec::with_capacity(len as usize);
-
-            reader.take(len as u64).read_to_end(&mut data)?;
-
-            Ok(Value::Binary(data))
+            decode_binary(reader).map(Value::Binary)
         }
         Some(ElementType::Bool) => {
             Ok(Value::Bool(reader.read_u8()? != 0))

@@ -8,7 +8,7 @@ use std::ops::RangeFull;
 use indexmap::IndexMap;
 use byteorder::WriteBytesExt;
 
-use crate::value::{Value, TimeStamp};
+use crate::value::{Value, TimeStamp, Binary};
 use crate::array::Array;
 use crate::message_id::MessageId;
 use crate::encode::{encode_message, encode_value, write_u32, EncodeResult};
@@ -252,7 +252,7 @@ impl Message {
         self.get(key) == Some(&Value::Null)
     }
 
-    pub fn get_binary(&self, key: &str) -> Result<&Vec<u8>> {
+    pub fn get_binary(&self, key: &str) -> Result<&Binary> {
         match self.get(key) {
             Some(&Value::Binary(ref v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),

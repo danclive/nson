@@ -4,7 +4,7 @@ use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeT
                  SerializeTupleVariant, SerializeMap, SerializeStruct, SerializeStructVariant};
 
 use crate::message::Message;
-use crate::value::{Value, TimeStamp};
+use crate::value::{Value, TimeStamp, Binary};
 use crate::array::Array;
 use crate::message_id::MessageId;
 use crate::encode::to_nson;
@@ -42,6 +42,7 @@ impl Serialize for Value {
             Value::Message(ref v) => v.serialize(serializer),
             Value::Bool(v) => serializer.serialize_bool(v),
             Value::Null => serializer.serialize_unit(),
+            Value::Binary(ref bytes) => serializer.serialize_bytes(&bytes.0),
             _ => {
                 let msg = self.to_extended_message();
                 msg.serialize(serializer)
@@ -139,7 +140,7 @@ impl Serializer for Encoder {
     }
 
     fn serialize_bytes(self, value: &[u8]) -> EncodeResult<Value> {
-        Ok(Value::Binary(value.into()))
+        Ok(Value::Binary(Binary(value.into())))
     }
 
     #[inline]
@@ -447,5 +448,16 @@ impl Serialize for MessageId {
         let mut ser = serializer.serialize_map(Some(1))?;
         ser.serialize_entry("$mid", &self.to_hex())?;
         ser.end()
+    }
+}
+
+impl Serialize for Binary {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let value = Value::Binary(self.clone());
+        value.serialize(serializer)
     }
 }
