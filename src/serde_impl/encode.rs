@@ -183,9 +183,7 @@ impl Serializer for Encoder {
     ) -> EncodeResult<Value>
         where T: Serialize
     {
-        let mut ser = TupleStructSerializer { inner: Array::new() };
-        ser.serialize_field(value)?;
-        ser.end()
+        value.serialize(self)
     }
 
     #[inline]

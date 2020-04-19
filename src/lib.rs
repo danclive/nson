@@ -38,8 +38,12 @@ mod test {
         e: Vec<u8>,
         t: TimeStamp,
         i: MessageId,
-        j: Binary
+        j: Binary,
+        k: NewType
     }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    pub struct NewType(u64);
 
     #[test]
     fn serialize_and_deserialize() {
@@ -51,7 +55,8 @@ mod test {
             e: vec![1, 2, 3, 4],
             t: TimeStamp(123),
             i: MessageId::new(),
-            j : vec![5, 6, 7, 8].into()
+            j : vec![5, 6, 7, 8].into(),
+            k: NewType(123)
         };
 
         let nson = to_nson(&foo).unwrap();
