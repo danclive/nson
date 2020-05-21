@@ -27,7 +27,7 @@ pub type Result<T> = result::Result<T, Error>;
 //     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
 impl MessageId {
     /// Generate a new MessageId
-    /// 
+    ///
     /// # Examples
     ///
     /// ```
@@ -119,6 +119,14 @@ impl MessageId {
     /// Convert this MessageId to a 16-byte hexadecimal string.
     pub fn to_hex(&self) -> String {
         self.bytes.to_hex()
+    }
+
+    pub fn zero() -> MessageId {
+        MessageId { bytes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self == &MessageId::zero()
     }
 }
 

@@ -42,9 +42,9 @@ impl fmt::Debug for Value {
             Value::String(ref s) => write!(fmt, "String({:?})", s),
             Value::Array(ref vec) => write!(fmt, "Array({:?})", vec),
             Value::Message(ref o) => write!(fmt, "{:?}", o),
-            Value::Bool(b) => write!(fmt, "Boolean({:?})", b),
+            Value::Bool(b) => write!(fmt, "Bool({:?})", b),
             Value::Null => write!(fmt, "Null"),
-            Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.0.to_hex()),
+            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.to_hex()),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
@@ -81,11 +81,11 @@ impl fmt::Display for Value {
             Value::Message(ref o) => write!(fmt, "{}", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
-            Value::Binary(ref vec) => write!(fmt, "BinData(0x{})", vec.0.to_hex()),
+            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.to_hex()),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
-            Value::MessageId(ref id) => write!(fmt, "MessageId(\"{}\")", id),
+            Value::MessageId(ref id) => write!(fmt, "MessageId({})", id),
         }
     }
 }

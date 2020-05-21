@@ -30,7 +30,7 @@ impl From<Value> for serde_json::Value {
     }
 }
 
-impl From<serde_json::Value> for Value{
+impl From<serde_json::Value> for Value {
     fn from(value: serde_json::Value) -> Self {
         match value {
             serde_json::Value::Number(v) => {
@@ -60,7 +60,7 @@ impl From<serde_json::Value> for Value{
             }
             serde_json::Value::Object(v) => {
                 let message: Message = v.into_iter().map(|(k, v)| (k, v.into())).collect();
-                
+
                 if message.len() == 1 {
                     if let Ok(timestamp) = message.get_i32("$tim") {
                         return Value::TimeStamp((timestamp as u64).into())
@@ -97,7 +97,7 @@ impl From<Message> for serde_json::Value {
 impl From<serde_json::Value> for Message {
     fn from(json: serde_json::Value) -> Self {
         let value: Value = json.into();
-        
+
         match value {
             Value::Message(message) => message,
             _ => Message::new()
