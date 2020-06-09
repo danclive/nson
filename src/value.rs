@@ -407,12 +407,24 @@ impl From<u64> for TimeStamp {
     }
 }
 
+impl From<TimeStamp> for u64 {
+    fn from(t: TimeStamp) -> Self {
+        t.0
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone)]
 pub struct Binary(pub Vec<u8>);
 
 impl From<Vec<u8>> for Binary {
     fn from(v: Vec<u8>) -> Self {
         Binary(v)
+    }
+}
+
+impl From<Binary> for Vec<u8> {
+    fn from(b: Binary) -> Self {
+        b.0
     }
 }
 

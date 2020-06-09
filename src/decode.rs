@@ -228,7 +228,7 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             Ok(Value::Null)
         }
         Some(ElementType::TimeStamp) => {
-            read_u64(reader).map(|v|v.into())
+            read_u64(reader).map(|v| Value::TimeStamp(v.into()))
         }
         Some(ElementType::MessageId) => {
             let mut buf = [0; 16];

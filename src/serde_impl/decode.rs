@@ -733,7 +733,7 @@ impl<'de> Deserialize<'de> for Binary {
             Value::Binary(v) => {
                 Ok(v)
             }
-            _ => Err(D::Error::custom("expecting MessageId")),
+            _ => Err(D::Error::custom("expecting Binary")),
         }
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name          = "nson"
-version       = "0.8.3"
+version       = "0.8.4"
 license       = "MIT"
 authors       = ["danc <dangcheng@hotmail.com>"]
 description   = "NSON is a lightweight data-interchange format like JSON or BSON"

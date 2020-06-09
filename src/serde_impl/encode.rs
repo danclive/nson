@@ -443,9 +443,8 @@ impl Serialize for MessageId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
-        let mut ser = serializer.serialize_map(Some(1))?;
-        ser.serialize_entry("$mid", &self.to_hex())?;
-        ser.end()
+        let value = Value::MessageId(*self);
+        value.serialize(serializer)
     }
 }
 

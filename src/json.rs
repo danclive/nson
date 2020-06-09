@@ -131,7 +131,7 @@ mod test {
 
         let value: Value = json.into();
 
-        let message = msg! {
+        let message = msg!{
             "a": 1i32,
             "b": i64::max_value(),
             "c": 1.1f64,

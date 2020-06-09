@@ -12,7 +12,7 @@ use crate::util::hex::{ToHex, FromHex, FromHexError};
 static mut IDENTIFY_BYTES: Option<[u8; 4]> = None;
 static COUNTER: AtomicU16 = AtomicU16::new(0);
 
-#[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct MessageId {
     bytes: [u8; 16]
 }

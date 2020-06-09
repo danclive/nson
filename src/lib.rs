@@ -18,7 +18,7 @@ pub mod message_id;
 pub const MAX_NSON_SIZE: u32 = 32 * 1024 * 1024; // 32 MB
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::message_id::MessageId;
     use serde::{Serialize, Deserialize};
     use serde_bytes;
