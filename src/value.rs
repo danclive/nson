@@ -3,10 +3,11 @@ use std::{f64, i64};
 use std::convert::Into;
 use std::ops::{DerefMut, Deref};
 
+use hex::{ToHex, FromHex};
+
 use crate::message::Message;
 use crate::array::Array;
 use crate::spec::ElementType;
-use crate::util::hex::{ToHex, FromHex};
 use crate::message_id::MessageId;
 use crate::msg;
 
@@ -44,7 +45,7 @@ impl fmt::Debug for Value {
             Value::Message(ref o) => write!(fmt, "{:?}", o),
             Value::Bool(b) => write!(fmt, "Bool({:?})", b),
             Value::Null => write!(fmt, "Null"),
-            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.to_hex()),
+            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.encode_hex::<String>()),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
@@ -81,7 +82,7 @@ impl fmt::Display for Value {
             Value::Message(ref o) => write!(fmt, "{}", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
-            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.to_hex()),
+            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.encode_hex::<String>()),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
@@ -356,7 +357,7 @@ impl Value {
         match self {
             Value::Binary(ref v) => {
                 msg!{
-                    "$bin": v.0.to_hex()
+                    "$bin": v.0.encode_hex::<String>()
                 }
             }
             Value::TimeStamp(v) => {

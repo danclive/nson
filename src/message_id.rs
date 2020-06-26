@@ -7,7 +7,7 @@ use byteorder::{ByteOrder, BigEndian};
 
 use rand::{self, thread_rng, Rng};
 
-use crate::util::hex::{ToHex, FromHex, FromHexError};
+use hex::{ToHex, FromHex, FromHexError};
 
 static mut IDENTIFY_BYTES: Option<[u8; 4]> = None;
 static COUNTER: AtomicU16 = AtomicU16::new(0);
@@ -118,7 +118,7 @@ impl MessageId {
 
     /// Convert this MessageId to a 16-byte hexadecimal string.
     pub fn to_hex(&self) -> String {
-        self.bytes.to_hex()
+        self.bytes.encode_hex()
     }
 
     pub fn zero() -> MessageId {
