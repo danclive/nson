@@ -1,7 +1,7 @@
 //! MessageId
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{io, fmt, result, error};
+use std::{fmt, result, error};
 
 use byteorder::{ByteOrder, BigEndian};
 
@@ -81,7 +81,7 @@ impl MessageId {
     /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573ef5a329c")
     /// ```
     pub fn with_string(str: &str) -> Result<MessageId> {
-        let bytes: Vec<u8> = FromHex::from_hex(str.as_bytes())?;
+        let bytes: Vec<u8> = FromHex::from_hex(str)?;
         if bytes.len() != 16 {
             return Err(Error::ArgumentError("Provided string must be a 16-byte hexadecimal string.".to_string()))
         }
@@ -212,9 +212,7 @@ fn gen_count() -> [u8; 2] {
 #[derive(Debug)]
 pub enum Error {
     ArgumentError(String),
-    FromHexError(FromHexError),
-    IoError(io::Error),
-    RandError(rand::Error)
+    FromHexError(FromHexError)
 }
 
 impl From<FromHexError> for Error {
@@ -223,25 +221,11 @@ impl From<FromHexError> for Error {
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::IoError(err)
-    }
-}
-
-impl From<rand::Error> for Error {
-    fn from(err: rand::Error) -> Error {
-        Error::RandError(err)
-    }
-}
-
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::ArgumentError(ref err) => err.fmt(fmt),
-            Error::FromHexError(ref err) => err.fmt(fmt),
-            Error::IoError(ref inner) => inner.fmt(fmt),
-            Error::RandError(ref inner) => inner.fmt(fmt)
+            Error::FromHexError(ref err) => err.fmt(fmt)
         }
     }
 }
@@ -250,9 +234,7 @@ impl error::Error for Error {
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::ArgumentError(_) => None,
-            Error::FromHexError(ref err) => Some(err),
-            Error::IoError(ref err) => Some(err),
-            Error::RandError(ref err) => Some(err)
+            Error::FromHexError(ref err) => Some(err)
         }
     }
 }
