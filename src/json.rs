@@ -7,11 +7,11 @@ impl From<Value> for serde_json::Value {
     fn from(value: Value) -> Self {
         match value {
             Value::F32(v) => json!(v),
-            Value::F64(v) => json!(v),
+            Value::F64(v) => json!({"$f64": v}),
             Value::I32(v) => json!(v),
-            Value::I64(v) => json!(v),
-            Value::U32(v) => json!(v),
-            Value::U64(v) => json!(v),
+            Value::I64(v) => json!({"$i64": v}),
+            Value::U32(v) => json!({"$u32": v}),
+            Value::U64(v) => json!({"$u64": v}),
             Value::String(v) => json!(v),
             Value::Array(v) => {
                 let array: Vec<serde_json::Value> = v.into_iter().map(|v| v.into()).collect();
@@ -24,7 +24,7 @@ impl From<Value> for serde_json::Value {
             Value::Bool(v) => json!(v),
             Value::Null => json!(null),
             Value::Binary(v) => json!({"$bin": base64::encode(v.0)}),
-            Value::TimeStamp(v) => json!({"$tim": v}),
+            Value::TimeStamp(v) => json!({"$tim": v.0}),
             Value::MessageId(v) => json!({"$mid": v.to_hex()})
         }
     }
@@ -35,19 +35,11 @@ impl From<serde_json::Value> for Value {
         match value {
             serde_json::Value::Number(v) => {
                 if let Some(i) = v.as_i64() {
-                    if i <= i32::max_value() as i64 {
-                        Value::I32(i as i32)
-                    } else {
-                        Value::I64(i)
-                    }
+                    Value::I32(i as i32)
                 } else if let Some(u) = v.as_u64() {
-                    if u <= u32::max_value() as u64 {
-                        Value::U32(u as u32)
-                    } else {
-                        Value::U64(u)
-                    }
+                    Value::I32(u as i32)
                 } else if let Some(f) = v.as_f64() {
-                    Value::F64(f)
+                    Value::F32(f as f32)
                 } else {
                     panic!("Invalid number value: {}", v);
                 }
@@ -58,28 +50,70 @@ impl From<serde_json::Value> for Value {
                 let array: Vec<Value> = v.into_iter().map(|v| v.into()).collect();
                 Value::Array(Array::from_vec(array))
             }
-            serde_json::Value::Object(v) => {
-                let message: Message = v.into_iter().map(|(k, v)| (k, v.into())).collect();
+            serde_json::Value::Object(map) => {
+                if map.len() == 1 {
+                    let keys: Vec<_> = map.keys().map(|s| s.as_str()).collect();
 
-                if message.len() == 1 {
-                    if let Ok(timestamp) = message.get_i32("$tim") {
-                        return Value::TimeStamp((timestamp as u64).into())
-                    } else if let Ok(timestamp) = message.get_u32("$tim") {
-                        return Value::TimeStamp((timestamp as u64).into())
-                    } else if let Ok(timestamp) = message.get_i64("$tim") {
-                        return Value::TimeStamp((timestamp as u64).into())
-                    } else if let Ok(timestamp) = message.get_u64("$tim") {
-                        return Value::TimeStamp(timestamp.into())
-                    } else if let Ok(hex) = message.get_str("$bin") {
-                        if let Ok(bin) = base64::decode(hex) {
-                            return bin.into()
+                    match keys.as_slice() {
+                        ["$tim"] => {
+                            println!("{:?}", map);
+                            if let Some(v) = map.get("$tim") {
+                                if let Some(u) = v.as_u64() {
+                                    return Value::TimeStamp(u.into())
+                                }
+                            }
                         }
-                    } else if let Ok(hex) = message.get_str("$mid") {
-                        if let Ok(message_id) = MessageId::with_string(hex) {
-                            return message_id.into()
+                        ["$bin"] => {
+                            if let Some(v) = map.get("$bin") {
+                                if let Some(hex) = v.as_str() {
+                                    if let Ok(bin) = base64::decode(hex) {
+                                        return bin.into()
+                                    }
+                                }
+                            }
                         }
+                        ["$mid"] => {
+                            if let Some(v) = map.get("$mid") {
+                                if let Some(hex) = v.as_str() {
+                                    if let Ok(message_id) = MessageId::with_string(hex) {
+                                        return message_id.into()
+                                    }
+                                }
+                            }
+                        }
+                        ["$f64"] => {
+                            if let Some(v) = map.get("$f64") {
+                                if let Some(f) = v.as_f64() {
+                                    return Value::F64(f)
+                                }
+                            }
+                        }
+                        ["$i64"] => {
+                            if let Some(v) = map.get("$i64") {
+                                if let Some(i) = v.as_i64() {
+                                    return Value::I64(i)
+                                }
+                            }
+                        }
+                        ["$u32"] => {
+                            if let Some(v) = map.get("$u32") {
+                                if let Some(u) = v.as_u64() {
+                                    return Value::U32(u as u32)
+                                }
+                            }
+                        }
+                        ["$u64"] => {
+                            if let Some(v) = map.get("$u64") {
+                                if let Some(u) = v.as_u64() {
+                                    return Value::U64(u)
+                                }
+                            }
+                        }
+                        _ => ()
                     }
                 }
+
+                let message: Message = map.into_iter().map(|(k, v)| (k, v.into())).collect();
 
                 Value::Message(message)
             }
@@ -115,35 +149,42 @@ mod test {
     fn convert_json() {
         let json = json!({
             "a": 1i32,
-            "b": i64::max_value(),
-            "c": 1.1f64,
-            "d": std::f64::MAX,
-            "e": {
+            "b": {"$i64": 2i64},
+            "c": {"$u32": 3u32},
+            "d": {"$u64": 4u64},
+            "e": 5.6f32,
+            "f": {"$f64": 7.8f64},
+            "g": {
                 "$tim": 456
             },
-            "f": {
+            "h": {
                 "$mid": "0171253e54db9aef760d5fbdd048e368"
             },
-            "g": {
+            "i": {
                 "$bin": "AQIDBAUG"
             }
         });
 
-        let value: Value = json.into();
-
         let message = msg!{
             "a": 1i32,
-            "b": i64::max_value(),
-            "c": 1.1f64,
-            "d": std::f64::MAX,
-            "e": TimeStamp(456),
-            "f": MessageId::with_string("0171253e54db9aef760d5fbdd048e368").unwrap(),
-            "g": vec![1u8, 2, 3, 4, 5, 6]
-
+            "b": 2i64,
+            "c": 3u32,
+            "d": 4u64,
+            "e": 5.6f32,
+            "f": 7.8f64,
+            "g": TimeStamp(456),
+            "h": MessageId::with_string("0171253e54db9aef760d5fbdd048e368").unwrap(),
+            "i": vec![1u8, 2, 3, 4, 5, 6]
         };
 
-        let value2: Value = message.into();
+        let nson_value: Value = message.clone().into();
 
-        assert!(value == value2);
+        let value: serde_json::Value = message.into();
+
+        assert!(json == value);
+
+        let value2: Value = json.into();
+
+        assert!(nson_value == value2);
     }
 }

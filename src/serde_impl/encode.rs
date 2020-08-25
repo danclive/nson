@@ -433,8 +433,8 @@ impl Serialize for TimeStamp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
-        let doc = Value::TimeStamp(*self);
-        doc.serialize(serializer)
+        let value = Value::TimeStamp(*self);
+        value.serialize(serializer)
     }
 }
 

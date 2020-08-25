@@ -353,7 +353,7 @@ impl Value {
         }
     }
 
-    pub fn to_extended_message(&self) -> Message {
+    pub(crate) fn to_extended_message(&self) -> Message {
         match self {
             Value::Binary(ref v) => {
                 msg!{
@@ -374,28 +374,35 @@ impl Value {
         }
     }
 
-    pub fn from_extended_message(values: Message) -> Value {
-        if values.len() == 1 {
-            if let Ok(timestamp) = values.get_i32("$tim") {
-                return Value::TimeStamp((timestamp as u64).into())
-            } else if let Ok(timestamp) = values.get_u32("$tim") {
-                return Value::TimeStamp((timestamp as u64).into())
-            } else if let Ok(timestamp) = values.get_i64("$tim") {
-                return Value::TimeStamp((timestamp as u64).into())
-            } else if let Ok(timestamp) = values.get_u64("$tim") {
-                return Value::TimeStamp(timestamp.into())
-            } else if let Ok(hex) = values.get_str("$bin") {
-                if let Ok(bin) = FromHex::from_hex(hex.as_bytes()) {
-                    return Value::Binary(Binary(bin))
+    pub(crate) fn from_extended_message(mut msg: Message) -> Value {
+        if msg.len() == 1 {
+            let (key, value) = msg.pop().unwrap();
+
+            match key.as_str() {
+                "$tim" => {
+                    if let Value::U64(u) = value {
+                        return Value::TimeStamp(u.into())
+                    }
                 }
-            } else if let Ok(hex) = values.get_str("$mid") {
-                if let Ok(message_id) = MessageId::with_string(hex) {
-                    return message_id.into()
+                "$bin" => {
+                    if let Value::String(hex) = value {
+                        if let Ok(bin) = FromHex::from_hex(hex.as_bytes()) {
+                            return Value::Binary(Binary(bin))
+                        }
+                    }
                 }
+                "$mid" => {
+                    if let Value::String(hex) = value {
+                        if let Ok(message_id) = MessageId::with_string(&hex) {
+                            return message_id.into()
+                        }
+                    }
+                }
+                _ => ()
             }
         }
 
-        Value::Message(values)
+        Value::Message(msg)
     }
 }
 
