@@ -10,11 +10,11 @@ pub mod array;
 pub mod encode;
 pub mod decode;
 pub mod serde_impl;
-mod spec;
+pub mod spec;
 mod json;
 pub mod message_id;
 
-pub const MAX_NSON_SIZE: u32 = 32 * 1024 * 1024; // 32 MB
+pub const MAX_NSON_SIZE: u32 = 64 * 1024 * 1024; // 64 MB
 
 #[cfg(test)]
 mod tests {
@@ -40,7 +40,9 @@ mod tests {
         j: Binary,
         k: NewType,
         l: NewType2,
-        m: NewType3
+        m: NewType3,
+        n: NewType4,
+        o: E
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -51,6 +53,15 @@ mod tests {
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub struct NewType3 { a: i32, b: i64 }
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    pub struct NewType4;
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    enum E {
+        M(String),
+        N(u8),
+    }
 
     #[test]
     fn serialize_and_deserialize() {
@@ -65,10 +76,14 @@ mod tests {
             j : vec![5, 6, 7, 8].into(),
             k: NewType(123),
             l: NewType2(456, 789),
-            m: NewType3 { a: 111, b: 222 }
+            m: NewType3 { a: 111, b: 222 },
+            n: NewType4,
+            o: E::N(123)
         };
 
         let nson = to_nson(&foo).unwrap();
+
+        panic!("{:?}", nson);
 
         let foo2: Foo = from_nson(nson).unwrap();
 

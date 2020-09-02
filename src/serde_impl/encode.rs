@@ -1,5 +1,3 @@
-use std::{u32, i32, f64};
-
 use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeTupleStruct,
                  SerializeTupleVariant, SerializeMap, SerializeStruct, SerializeStructVariant};
 
@@ -18,8 +16,7 @@ impl Serialize for Message {
     {
         let mut map = serializer.serialize_map(Some(self.len()))?;
         for (k, v) in self {
-            map.serialize_key(k)?;
-            map.serialize_value(v)?;
+            map.serialize_entry(k, v)?;
         }
         map.end()
     }
@@ -196,12 +193,9 @@ impl Serializer for Encoder {
     ) -> EncodeResult<Value>
         where T: Serialize
     {
-        let mut ser = TupleVariantSerializer {
-            inner: Array::new(),
-            name: variant,
-        };
-        ser.serialize_field(value)?;
-        ser.end()
+        let mut newtype_variant = Message::new();
+        newtype_variant.insert(variant, to_nson(value)?);
+        Ok(Value::Message(newtype_variant))
     }
 
     #[inline]
@@ -340,12 +334,7 @@ impl SerializeTupleVariant for TupleVariantSerializer {
 
     fn end(self) -> EncodeResult<Value> {
         let mut tuple_variant = Message::new();
-        if self.inner.len() == 1 {
-            tuple_variant.insert(self.name, self.inner.into_iter().next().unwrap());
-        } else {
-            tuple_variant.insert(self.name, Value::Array(self.inner));
-        }
-
+        tuple_variant.insert(self.name, self.inner);
         Ok(Value::Message(tuple_variant))
     }
 }

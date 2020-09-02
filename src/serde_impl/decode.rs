@@ -88,63 +88,63 @@ impl<'de> Visitor<'de> for ValueVisitor {
 
     #[inline]
     fn visit_bool<E>(self, value: bool) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::Bool(value))
     }
 
     #[inline]
     fn visit_i8<E>(self, value: i8) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::I32(i32::from(value)))
     }
 
     #[inline]
     fn visit_u8<E>(self, value: u8) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::U32(u32::from(value)))
     }
 
     #[inline]
     fn visit_i16<E>(self, value: i16) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::I32(i32::from(value)))
     }
 
     #[inline]
     fn visit_u16<E>(self, value: u16) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::U32(u32::from(value)))
     }
 
     #[inline]
     fn visit_i32<E>(self, value: i32) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::I32(value))
     }
 
     #[inline]
     fn visit_u32<E>(self, value: u32) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::U32(value))
     }
 
     #[inline]
     fn visit_i64<E>(self, value: i64) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::I64(value))
     }
 
     #[inline]
     fn visit_u64<E>(self, value: u64) -> Result<Value, E>
-        where E: Error
+        where E: de::Error
     {
         Ok(Value::U64(value))
     }
@@ -211,7 +211,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
 
     #[inline]
     fn visit_bytes<E>(self, v: &[u8]) -> Result<Value, E>
-        where E: Error,
+        where E: de::Error,
     {
         Ok(Value::Binary(v.to_vec().into()))
     }
@@ -634,7 +634,6 @@ impl<'de> MapAccess<'de> for MapDecoder {
                 let de = Decoder::new(Value::String(key));
                 match seed.deserialize(de) {
                     Ok(val) => Ok(Some(val)),
-                    Err(DecodeError::UnknownField(_)) => Ok(None),
                     Err(e) => Err(e),
                 }
             }

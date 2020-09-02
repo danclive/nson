@@ -1,3 +1,5 @@
+use serde::{ser, de::{self, Error}};
+
 pub const F32: u8 = 0x01;
 pub const F64: u8 = 0x02;
 pub const I32: u8 = 0x03;
@@ -14,7 +16,7 @@ pub const TIMESTAMP: u8 = 0x0D;
 pub const MESSAGE_ID: u8 = 0x0E;
 
 #[repr(u8)]
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ElementType {
     F32 = F32,
     F64 = F64,
@@ -40,7 +42,7 @@ impl ElementType {
             I32 => ElementType::I32,
             I64 => ElementType::I64,
             U32 => ElementType::U32,
-            U64 => ElementType::U64, 
+            U64 => ElementType::U64,
             STRING => ElementType::String,
             ARRAY => ElementType::Array,
             MESSAGE => ElementType::Message,
@@ -51,5 +53,28 @@ impl ElementType {
             MESSAGE_ID => ElementType::MessageId,
             _ => return None
         })
+    }
+}
+
+impl ser::Serialize for ElementType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: ser::Serializer
+    {
+        let u = *self as u8;
+        serializer.serialize_u8(u)
+    }
+}
+
+impl <'de> de::Deserialize<'de> for ElementType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: de::Deserializer<'de>
+    {
+        let u = u8::deserialize(deserializer)?;
+
+        if let Some(a) = ElementType::from(u) {
+            return Ok(a)
+        }
+
+        Err(D::Error::custom("expecting ElementType"))
     }
 }

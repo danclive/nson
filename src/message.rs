@@ -308,6 +308,10 @@ impl Message {
         self.inner.extend(iter);
     }
 
+    pub fn get_index_of(&self, key: &str) -> Option<usize> {
+        self.inner.get_index_of(key)
+    }
+
     pub fn get_index(&self, index: usize) -> Option<(&String, &Value)> {
         self.inner.get_index(index)
     }

@@ -374,14 +374,14 @@ impl Value {
         }
     }
 
-    pub(crate) fn from_extended_message(mut msg: Message) -> Value {
+    pub(crate) fn from_extended_message(msg: Message) -> Value {
         if msg.len() == 1 {
-            let (key, value) = msg.pop().unwrap();
+            let (key, value) = msg.get_index(0).unwrap();
 
             match key.as_str() {
                 "$tim" => {
                     if let Value::U64(u) = value {
-                        return Value::TimeStamp(u.into())
+                        return Value::TimeStamp((*u).into())
                     }
                 }
                 "$bin" => {
