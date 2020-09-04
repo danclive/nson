@@ -231,7 +231,7 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             read_u64(reader).map(|v| Value::TimeStamp(v.into()))
         }
         Some(ElementType::MessageId) => {
-            let mut buf = [0; 16];
+            let mut buf = [0; 12];
             reader.read_exact(&mut buf)?;
 
             Ok(Value::MessageId(MessageId::with_bytes(buf)))

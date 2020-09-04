@@ -83,8 +83,6 @@ mod tests {
 
         let nson = to_nson(&foo).unwrap();
 
-        panic!("{:?}", nson);
-
         let foo2: Foo = from_nson(nson).unwrap();
 
         assert_eq!(foo, foo2);

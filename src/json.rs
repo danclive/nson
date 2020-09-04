@@ -158,7 +158,7 @@ mod test {
                 "$tim": 456
             },
             "h": {
-                "$mid": "0171253e54db9aef760d5fbdd048e368"
+                "$mid": "0171253e54db9aef760d5fbd"
             },
             "i": {
                 "$bin": "AQIDBAUG"
@@ -173,7 +173,7 @@ mod test {
             "e": 5.6f32,
             "f": 7.8f64,
             "g": TimeStamp(456),
-            "h": MessageId::with_string("0171253e54db9aef760d5fbdd048e368").unwrap(),
+            "h": MessageId::with_string("0171253e54db9aef760d5fbd").unwrap(),
             "i": vec![1u8, 2, 3, 4, 5, 6]
         };
 

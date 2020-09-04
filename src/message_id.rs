@@ -9,22 +9,22 @@ use rand::{self, thread_rng, Rng};
 
 use hex::{ToHex, FromHex, FromHexError};
 
-static mut IDENTIFY_BYTES: Option<[u8; 4]> = None;
+// static mut IDENTIFY_BYTES: Option<[u8; 4]> = None;
 static COUNTER: AtomicU16 = AtomicU16::new(0);
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct MessageId {
-    bytes: [u8; 16]
+    bytes: [u8; 12]
 }
 
 pub type Result<T> = result::Result<T, Error>;
 
 // Unique incrementing MessageId.
 //
-//   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//   |       timestamp       | count |    random     |   identify    |
-//   +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+//   +---+---+---+---+---+---+---+---+---+---+---+---+
+//   |       timestamp       | count |    random     |
+//   +---+---+---+---+---+---+---+---+---+---+---+---+
+//     0   1   2   3   4   5   6   7   8   9   10  11
 impl MessageId {
     /// Generate a new MessageId
     ///
@@ -41,14 +41,12 @@ impl MessageId {
         let timestamp = timestamp();
         let counter = gen_count();
         let random_bytes = random_bytes();
-        let identify_bytes = identify_bytes();
 
-        let mut bytes: [u8; 16] = [0; 16];
+        let mut bytes: [u8; 12] = [0; 12];
 
-        bytes[0..6].clone_from_slice(&timestamp[2..]);
+        bytes[..6].clone_from_slice(&timestamp[2..]);
         bytes[6..8].clone_from_slice(&counter);
-        bytes[8..12].clone_from_slice(&random_bytes);
-        bytes[12..].clone_from_slice(&identify_bytes);
+        bytes[8..].clone_from_slice(&random_bytes);
 
         MessageId { bytes }
     }
@@ -60,11 +58,11 @@ impl MessageId {
     /// ```
     /// use nson::message_id::MessageId;
     ///
-    /// let id = MessageId::with_bytes([1, 111, 157, 189, 157, 247, 247, 220, 156, 134, 213, 115, 239, 90, 50, 156]);
+    /// let id = MessageId::with_bytes([1, 111, 157, 189, 157, 247, 247, 220, 156, 134, 213, 115]);
     ///
-    /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573ef5a329c")
+    /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573")
     /// ```
-    pub fn with_bytes(bytes: [u8; 16]) -> Self {
+    pub fn with_bytes(bytes: [u8; 12]) -> Self {
         MessageId { bytes }
     }
 
@@ -76,17 +74,17 @@ impl MessageId {
     /// ```
     /// use nson::message_id::MessageId;
     ///
-    /// let id = MessageId::with_string("016f9dbd9df7f7dc9c86d573ef5a329c").unwrap();
+    /// let id = MessageId::with_string("016f9dbd9df7f7dc9c86d573").unwrap();
     ///
-    /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573ef5a329c")
+    /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573")
     /// ```
     pub fn with_string(str: &str) -> Result<MessageId> {
         let bytes: Vec<u8> = FromHex::from_hex(str)?;
-        if bytes.len() != 16 {
-            return Err(Error::ArgumentError("Provided string must be a 16-byte hexadecimal string.".to_string()))
+        if bytes.len() != 12 {
+            return Err(Error::ArgumentError("Provided string must be a 12-byte hexadecimal string.".to_string()))
         }
 
-        let mut buf = [0u8; 16];
+        let mut buf = [0u8; 12];
         buf[..].copy_from_slice(&bytes);
 
         Ok(MessageId {
@@ -94,8 +92,8 @@ impl MessageId {
         })
     }
 
-    /// 16-byte binary representation of this MessageId.
-    pub fn bytes(&self) -> [u8; 16] {
+    /// 12-byte binary representation of this MessageId.
+    pub fn bytes(&self) -> [u8; 12] {
         self.bytes
     }
 
@@ -122,7 +120,7 @@ impl MessageId {
     }
 
     pub fn zero() -> MessageId {
-        MessageId { bytes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+        MessageId { bytes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
     }
 
     pub fn is_zero(&self) -> bool {
@@ -148,8 +146,8 @@ impl fmt::Debug for MessageId {
     }
 }
 
-impl From<[u8; 16]> for MessageId {
-    fn from(bytes: [u8; 16]) -> Self {
+impl From<[u8; 12]> for MessageId {
+    fn from(bytes: [u8; 12]) -> Self {
         MessageId { bytes }
     }
 }
@@ -164,31 +162,31 @@ fn timestamp() -> [u8; 8] {
     time.to_be_bytes()
 }
 
-pub fn set_identify(identify: u32) {
-    let bytes = identify.to_be_bytes();
-    unsafe {
-       IDENTIFY_BYTES = Some(bytes);
-    }
-}
+// pub fn set_identify(identify: u32) {
+//     let bytes = identify.to_be_bytes();
+//     unsafe {
+//        IDENTIFY_BYTES = Some(bytes);
+//     }
+// }
 
-#[inline]
-fn identify_bytes() -> [u8; 4] {
-    unsafe {
-        if let Some(bytes) = IDENTIFY_BYTES.as_ref() {
-            return *bytes;
-        }
-    }
+// #[inline]
+// fn identify_bytes() -> [u8; 4] {
+//     unsafe {
+//         if let Some(bytes) = IDENTIFY_BYTES.as_ref() {
+//             return *bytes;
+//         }
+//     }
 
-    let rand_num: u32 = thread_rng().gen();
+//     let rand_num: u32 = thread_rng().gen();
 
-    let bytes = rand_num.to_be_bytes();
+//     let bytes = rand_num.to_be_bytes();
 
-    unsafe {
-       IDENTIFY_BYTES = Some(bytes);
-    }
+//     unsafe {
+//        IDENTIFY_BYTES = Some(bytes);
+//     }
 
-    bytes
-}
+//     bytes
+// }
 
 #[inline]
 fn random_bytes() -> [u8; 4] {

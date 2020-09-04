@@ -169,8 +169,8 @@ impl From<Vec<u8>> for Value {
     }
 }
 
-impl From<[u8; 16]> for Value {
-    fn from(o: [u8; 16]) -> Value {
+impl From<[u8; 12]> for Value {
+    fn from(o: [u8; 12]) -> Value {
         Value::MessageId(MessageId::with_bytes(o))
     }
 }
@@ -251,7 +251,7 @@ impl Value {
             Value::Null => 0,
             Value::Binary(b) => 4 + b.0.len(),
             Value::TimeStamp(_) => 8,
-            Value::MessageId(_) => 16
+            Value::MessageId(_) => 12
         }
     }
 
