@@ -3,14 +3,15 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fmt, result, error};
 
+use once_cell::sync::Lazy;
+
 use byteorder::{ByteOrder, BigEndian};
 
 use rand::{self, thread_rng, Rng};
 
 use hex::{ToHex, FromHex, FromHexError};
 
-// static mut IDENTIFY_BYTES: Option<[u8; 4]> = None;
-static COUNTER: AtomicU16 = AtomicU16::new(0);
+static COUNTER: Lazy<AtomicU16> = Lazy::new(|| AtomicU16::new(thread_rng().gen()));
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct MessageId {
@@ -110,10 +111,6 @@ impl MessageId {
         BigEndian::read_u32(&self.bytes[8..12])
     }
 
-    pub fn identify(&self) -> u32 {
-        BigEndian::read_u32(&self.bytes[12..])
-    }
-
     /// Convert this MessageId to a 16-byte hexadecimal string.
     pub fn to_hex(&self) -> String {
         self.bytes.encode_hex()
@@ -162,32 +159,6 @@ fn timestamp() -> [u8; 8] {
     time.to_be_bytes()
 }
 
-// pub fn set_identify(identify: u32) {
-//     let bytes = identify.to_be_bytes();
-//     unsafe {
-//        IDENTIFY_BYTES = Some(bytes);
-//     }
-// }
-
-// #[inline]
-// fn identify_bytes() -> [u8; 4] {
-//     unsafe {
-//         if let Some(bytes) = IDENTIFY_BYTES.as_ref() {
-//             return *bytes;
-//         }
-//     }
-
-//     let rand_num: u32 = thread_rng().gen();
-
-//     let bytes = rand_num.to_be_bytes();
-
-//     unsafe {
-//        IDENTIFY_BYTES = Some(bytes);
-//     }
-
-//     bytes
-// }
-
 #[inline]
 fn random_bytes() -> [u8; 4] {
     let rand_num: u32 = thread_rng().gen();
@@ -197,11 +168,6 @@ fn random_bytes() -> [u8; 4] {
 
 #[inline]
 fn gen_count() -> [u8; 2] {
-    if COUNTER.load(Ordering::SeqCst) == 0 {
-        let start: u16 = thread_rng().gen();
-        COUNTER.store(start, Ordering::SeqCst);
-    }
-
     let count = COUNTER.fetch_add(1, Ordering::SeqCst);
 
     count.to_be_bytes()
