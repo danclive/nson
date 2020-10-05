@@ -15,6 +15,7 @@ mod json;
 pub mod message_id;
 
 pub const MAX_NSON_SIZE: u32 = 64 * 1024 * 1024; // 64 MB
+pub const MIN_NSON_SIZE: u32 = 4 + 1;
 
 #[cfg(test)]
 mod tests {
@@ -22,8 +23,8 @@ mod tests {
     use serde::{Serialize, Deserialize};
     use serde_bytes;
 
-    use crate::encode::to_nson;
-    use crate::decode::from_nson;
+    use crate::encode::{to_nson, to_bytes};
+    use crate::decode::{from_nson, from_bytes};
     use crate::msg;
     use crate::value::{TimeStamp, Binary};
 
@@ -42,7 +43,8 @@ mod tests {
         l: NewType2,
         m: NewType3,
         n: NewType4,
-        o: E
+        o: E,
+        p: Vec<i32>
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -78,7 +80,8 @@ mod tests {
             l: NewType2(456, 789),
             m: NewType3 { a: 111, b: 222 },
             n: NewType4,
-            o: E::N(123)
+            o: E::N(123),
+            p: vec![111, 222]
         };
 
         let nson = to_nson(&foo).unwrap();
@@ -86,6 +89,12 @@ mod tests {
         let foo2: Foo = from_nson(nson).unwrap();
 
         assert_eq!(foo, foo2);
+
+        let bytes = to_bytes(&foo).unwrap();
+
+        let foo3: Foo = from_bytes(&bytes).unwrap();
+
+        assert_eq!(foo, foo3);
     }
 
     #[test]

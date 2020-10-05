@@ -244,7 +244,7 @@ impl Value {
             Value::I64(_) => 8,
             Value::U32(_) => 4,
             Value::U64(_) => 8,
-            Value::String(s) => 4 + s.len() + 1,
+            Value::String(s) => 4 + s.len(),
             Value::Array(a) => a.bytes_size(),
             Value::Message(m) => m.bytes_size(),
             Value::Bool(_) => 1,

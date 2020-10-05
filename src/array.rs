@@ -4,8 +4,6 @@ use std::iter::FromIterator;
 use std::convert::Into;
 use std::io::{Write, Read, Cursor};
 
-use byteorder::WriteBytesExt;
-
 use crate::value::Value;
 use crate::message::Message;
 use crate::message_id::MessageId;
@@ -80,44 +78,30 @@ impl Array {
         decode_array(reader)
     }
 
-    pub fn to_vec(&self) -> EncodeResult<Vec<u8>> {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
         let len = self.bytes_size();
 
         let mut buf = Vec::with_capacity(len);
         write_u32(&mut buf, len as u32)?;
 
-        for (key, val) in self.iter().enumerate() {
-            encode_value(&mut buf, &key.to_string(), val)?;
+        for val in self.iter() {
+            buf.write_all(&[val.element_type() as u8])?;
+
+            encode_value(&mut buf, val)?;
         }
 
-        buf.write_u8(0)?;
+        buf.write_all(&[0])?;
 
         Ok(buf)
     }
 
-    pub fn from_slice(slice: &[u8]) -> DecodeResult<Array> {
+    pub fn from_bytes(slice: &[u8]) -> DecodeResult<Array> {
         let mut reader = Cursor::new(slice);
         decode_array(&mut reader)
     }
 
     pub fn bytes_size(&self) -> usize {
-        fn num_decimal_digits(n: usize) -> usize {
-            let mut digits = 1;
-            let mut curr = 10;
-
-            while curr < n {
-                curr = match curr.checked_mul(10) {
-                    Some(val) => val,
-                    None => break,
-                };
-
-                digits += 1;
-            }
-
-            digits
-        }
-
-        4 + self.iter().enumerate().map(|(k, v)| { 1 + num_decimal_digits(k) + 1 + v.bytes_size() }).sum::<usize>() + 1
+        4 + self.iter().map(|v| v.bytes_size() + 1).sum::<usize>() + 1
     }
 }
 
@@ -213,9 +197,9 @@ mod test {
         array.push(123);
         array.push("haha");
 
-        let vec = array.to_vec().unwrap();
+        let vec = array.to_bytes().unwrap();
 
-        let array2 = Array::from_slice(&vec).unwrap();
+        let array2 = Array::from_bytes(&vec).unwrap();
 
         assert_eq!(array, array2);
     }

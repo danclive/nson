@@ -1,8 +1,6 @@
 use std::{io, error, fmt, string};
 use std::io::{Read, Cursor};
 
-use byteorder::{LittleEndian, ReadBytesExt};
-
 use serde::de::Deserialize;
 
 use crate::spec::ElementType;
@@ -17,7 +15,6 @@ pub enum DecodeError {
     IoError(io::Error),
     FromUtf8Error(string::FromUtf8Error),
     UnrecognizedElementType(u8),
-    InvalidArrayKey(usize, String),
     ExpectedField(&'static str),
     UnknownField(String),
     SyntaxError(String),
@@ -27,8 +24,6 @@ pub enum DecodeError {
     DuplicatedField(&'static str),
     UnknownVariant(String),
     InvalidValue(String),
-    InvalidTimestamp(i64),
-    AmbiguousTimestamp(i64),
     Unknown(String)
 }
 
@@ -52,9 +47,6 @@ impl fmt::Display for DecodeError {
             DecodeError::UnrecognizedElementType(tag) => {
                 write!(fmt, "Unrecognized element type `{}`", tag)
             }
-            DecodeError::InvalidArrayKey(ref want, ref got) => {
-                write!(fmt, "Invalid array key: expected `{}`, got `{}`", want, got)
-            }
             DecodeError::ExpectedField(field_type) => {
                 write!(fmt, "Expected a field of type `{}`", field_type)
             }
@@ -68,8 +60,6 @@ impl fmt::Display for DecodeError {
             DecodeError::DuplicatedField(ref field) => write!(fmt, "Duplicated field `{}`", field),
             DecodeError::UnknownVariant(ref var) => write!(fmt, "Unknown variant `{}`", var),
             DecodeError::InvalidValue(ref desc) => desc.fmt(fmt),
-            DecodeError::InvalidTimestamp(ref i) => write!(fmt, "no such local time {}", i),
-            DecodeError::AmbiguousTimestamp(ref i) => write!(fmt, "ambiguous local time {}", i),
             DecodeError::Unknown(ref inner) => inner.fmt(fmt),
         }
     }
@@ -87,25 +77,60 @@ impl error::Error for DecodeError {
 
 pub type DecodeResult<T> = Result<T, DecodeError>;
 
-pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
-    let len = reader.read_u32::<LittleEndian>()?;
+#[inline]
+pub(crate) fn read_u8(reader: &mut impl Read) -> DecodeResult<u8> {
+    let mut buf = [0; 1];
+    reader.read_exact(&mut buf)?;
+    Ok(u8::from_le_bytes(buf))
+}
 
-    if len > crate::MAX_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
-    }
+#[inline]
+pub(crate) fn read_i32(reader: &mut impl Read) -> DecodeResult<i32> {
+    let mut buf = [0; 4];
+    reader.read_exact(&mut buf)?;
+    Ok(i32::from_le_bytes(buf))
+}
 
-    let mut s = String::with_capacity(len as usize - 1);
-    reader.take(len as u64 - 1).read_to_string(&mut s)?;
-    reader.read_u8()?; // The last 0x00
+#[inline]
+pub(crate) fn read_i64(reader: &mut impl Read) -> DecodeResult<i64> {
+    let mut buf = [0; 8];
+    reader.read_exact(&mut buf)?;
+    Ok(i64::from_le_bytes(buf))
+}
 
-    Ok(s)
+#[inline]
+pub(crate) fn read_u32(reader: &mut impl Read) -> DecodeResult<u32> {
+    let mut buf = [0; 4];
+    reader.read_exact(&mut buf)?;
+    Ok(u32::from_le_bytes(buf))
+}
+
+#[inline]
+pub(crate) fn read_u64(reader: &mut impl Read) -> DecodeResult<u64> {
+    let mut buf = [0; 8];
+    reader.read_exact(&mut buf)?;
+    Ok(u64::from_le_bytes(buf))
+}
+
+#[inline]
+pub(crate) fn read_f32(reader: &mut impl Read) -> DecodeResult<f32> {
+    let mut buf = [0; 4];
+    reader.read_exact(&mut buf)?;
+    Ok(f32::from_le_bytes(buf))
+}
+
+#[inline]
+pub(crate) fn read_f64(reader: &mut impl Read) -> DecodeResult<f64> {
+    let mut buf = [0; 8];
+    reader.read_exact(&mut buf)?;
+    Ok(f64::from_le_bytes(buf))
 }
 
 pub(crate) fn read_cstring(reader: &mut impl Read) -> DecodeResult<String> {
     let mut v = Vec::new();
 
     loop {
-        let c = reader.read_u8()?;
+        let c = read_u8(reader)?;
         if c == 0 {
             break;
         }
@@ -115,75 +140,39 @@ pub(crate) fn read_cstring(reader: &mut impl Read) -> DecodeResult<String> {
     Ok(String::from_utf8(v)?)
 }
 
-#[inline]
-pub(crate) fn read_i32(reader: &mut impl Read) -> DecodeResult<i32> {
-    reader.read_i32::<LittleEndian>().map_err(From::from)
-}
+pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
+    let len = read_u32(reader)?;
 
-#[inline]
-pub(crate) fn read_i64(reader: &mut impl Read) -> DecodeResult<i64> {
-    reader.read_i64::<LittleEndian>().map_err(From::from)
-}
-
-#[inline]
-pub(crate) fn read_u32(reader: &mut impl Read) -> DecodeResult<u32> {
-    reader.read_u32::<LittleEndian>().map_err(From::from)
-}
-
-#[inline]
-pub(crate) fn read_u64(reader: &mut impl Read) -> DecodeResult<u64> {
-    reader.read_u64::<LittleEndian>().map_err(From::from)
-}
-
-#[inline]
-pub(crate) fn read_f32(reader: &mut impl Read) -> DecodeResult<f32> {
-    reader.read_f32::<LittleEndian>().map_err(From::from)
-}
-
-#[inline]
-pub(crate) fn read_f64(reader: &mut impl Read) -> DecodeResult<f64> {
-    reader.read_f64::<LittleEndian>().map_err(From::from)
-}
-
-pub fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
-    let mut arr = Array::new();
-
-    // disregard the length: using Read::take causes infinite type recursion
-    read_u32(reader)?;
-
-    loop {
-        let tag = reader.read_u8()?;
-        if tag == 0 {
-            break;
-        }
-
-        // check that the key is as expected
-        let key = read_cstring(reader)?;
-        match key.parse::<usize>() {
-            Err(..) => return Err(DecodeError::InvalidArrayKey(arr.len(), key)),
-            Ok(idx) => {
-                if idx != arr.len() {
-                    return Err(DecodeError::InvalidArrayKey(arr.len(), key));
-                }
-            }
-        }
-
-        let val = decode_value(reader, tag)?;
-        arr.push(val)
+    if len < crate::MIN_NSON_SIZE - 1 {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid string length of {}", len)));
     }
 
-    Ok(arr)
+    if len > crate::MAX_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid string length of {}", len)));
+    }
+
+    let len = len - 4;
+
+    let mut s = String::with_capacity(len as usize);
+    reader.take(len as u64).read_to_string(&mut s)?;
+
+    Ok(s)
 }
 
-pub fn decode_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
+pub(crate) fn read_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
     let len = read_u32(reader)?;
+
+    if len < crate::MIN_NSON_SIZE - 1 {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
+    }
 
     if len > crate::MAX_NSON_SIZE {
         return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
     }
 
-    let mut data = Vec::with_capacity(len as usize);
+    let len = len - 4;
 
+    let mut data = Vec::with_capacity(len as usize);
     reader.take(len as u64).read_to_end(&mut data)?;
 
     Ok(Binary(data))
@@ -219,10 +208,10 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
             decode_array(reader).map(Value::Array)
         }
         Some(ElementType::Binary) => {
-            decode_binary(reader).map(Value::Binary)
+            read_binary(reader).map(Value::Binary)
         }
         Some(ElementType::Bool) => {
-            Ok(Value::Bool(reader.read_u8()? != 0))
+            Ok(Value::Bool(read_u8(reader)? != 0))
         }
         Some(ElementType::Null) => {
             Ok(Value::Null)
@@ -242,14 +231,48 @@ fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
     }
 }
 
+pub fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
+    let mut arr = Array::new();
+
+    let len = read_u32(reader)?;
+
+    if len < crate::MIN_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid array length of {}", len)));
+    }
+
+    if len > crate::MAX_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid array length of {}", len)));
+    }
+
+    loop {
+        let tag = read_u8(reader)?;
+        if tag == 0 {
+            break;
+        }
+
+        let val = decode_value(reader, tag)?;
+        arr.push(val)
+    }
+
+    Ok(arr)
+}
+
 pub fn decode_message(reader: &mut impl Read) -> DecodeResult<Message> {
     let mut msg = Message::new();
 
     // disregard the length: using Read::take causes infinite type recursion
-    read_u32(reader)?;
+    let len = read_u32(reader)?;
+
+    if len < crate::MIN_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid message length of {}", len)));
+    }
+
+    if len > crate::MAX_NSON_SIZE {
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid message length of {}", len)));
+    }
 
     loop {
-        let tag = reader.read_u8()?;
+        let tag = read_u8(reader)?;
 
         if tag == 0 {
             break;
@@ -271,10 +294,10 @@ pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
     Deserialize::deserialize(de)
 }
 
-pub fn from_slice<'de, T>(slice: &[u8]) -> DecodeResult<T>
+pub fn from_bytes<'de, T>(bytes: &[u8]) -> DecodeResult<T>
     where T: Deserialize<'de>
 {
-    let mut reader = Cursor::new(slice);
+    let mut reader = Cursor::new(bytes);
     let msg = decode_message(&mut reader)?;
     from_nson(Value::Message(msg))
 }

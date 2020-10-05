@@ -5,8 +5,6 @@ use std::{fmt, result, error};
 
 use once_cell::sync::Lazy;
 
-use byteorder::{ByteOrder, BigEndian};
-
 use rand::{self, thread_rng, Rng};
 
 use hex::{ToHex, FromHex, FromHexError};
@@ -45,9 +43,9 @@ impl MessageId {
 
         let mut bytes: [u8; 12] = [0; 12];
 
-        bytes[..6].clone_from_slice(&timestamp[2..]);
-        bytes[6..8].clone_from_slice(&counter);
-        bytes[8..].clone_from_slice(&random_bytes);
+        bytes[..6].copy_from_slice(&timestamp[2..]);
+        bytes[6..8].copy_from_slice(&counter);
+        bytes[8..].copy_from_slice(&random_bytes);
 
         MessageId { bytes }
     }
@@ -100,15 +98,9 @@ impl MessageId {
 
     /// Timstamp of this MessageId
     pub fn timestamp(&self) -> u64 {
-        BigEndian::read_u48(&self.bytes)
-    }
-
-    pub fn counter(&self) -> u16 {
-        BigEndian::read_u16(&self.bytes[6..8])
-    }
-
-    pub fn random(&self) -> u32 {
-        BigEndian::read_u32(&self.bytes[8..12])
+        let mut buf = [0u8; 8];
+        buf[2..8].copy_from_slice(&self.bytes[..6]);
+        u64::from_be_bytes(buf)
     }
 
     /// Convert this MessageId to a 16-byte hexadecimal string.

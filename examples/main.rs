@@ -7,7 +7,6 @@ fn main() {
 
     println!("{:?}", id);
     println!("{:?}", id.timestamp());
-    println!("{:?}", id.counter());
     println!("{:?}", id.bytes());
 
     let a = A { b: B(123) };
