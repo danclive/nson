@@ -2,6 +2,7 @@
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fmt, result, error};
+use std::str::FromStr;
 
 use once_cell::sync::Lazy;
 
@@ -138,6 +139,14 @@ impl fmt::Debug for MessageId {
 impl From<[u8; 12]> for MessageId {
     fn from(bytes: [u8; 12]) -> Self {
         MessageId { bytes }
+    }
+}
+
+impl FromStr for MessageId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<MessageId> {
+        Self::with_string(s)
     }
 }
 
