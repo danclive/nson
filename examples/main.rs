@@ -16,6 +16,10 @@ fn main() {
 
     let ret = decode::from_nson::<A>(ret.unwrap());
     println!("{:?}", ret);
+
+    let m = nson::msg! {"a": [123i32, 456f32], "b": "hello"};
+    println!("{:?}", m);
+    println!("{}", m);
 }
 
 #[derive(Serialize, Deserialize, Debug)]
