@@ -41,7 +41,7 @@ impl From<serde_json::Value> for Value {
                 } else if let Some(f) = v.as_f64() {
                     Value::F32(f as f32)
                 } else {
-                    panic!("Invalid number value: {}", v);
+                   unreachable!()
                 }
             }
             serde_json::Value::String(v) => v.into(),
@@ -56,7 +56,6 @@ impl From<serde_json::Value> for Value {
 
                     match keys.as_slice() {
                         ["$tim"] => {
-                            println!("{:?}", map);
                             if let Some(v) = map.get("$tim") {
                                 if let Some(u) = v.as_u64() {
                                     return Value::TimeStamp(u.into())

@@ -100,7 +100,7 @@ pub(crate) fn write_binary(writer: &mut impl Write, binary: &Binary) -> EncodeRe
     Ok(())
 }
 
-pub(crate) fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
+pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
     match *val {
         Value::F32(v) => write_f32(writer, v),
         Value::F64(v) => write_f64(writer, v),

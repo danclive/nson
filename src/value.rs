@@ -57,15 +57,15 @@ impl fmt::Debug for Value {
 impl fmt::Display for Value {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::F32(f) => write!(fmt, "{}", f),
-            Value::F64(f) => write!(fmt, "{}", f),
-            Value::I32(i) => write!(fmt, "{}", i),
-            Value::I64(i) => write!(fmt, "{}", i),
-            Value::U32(u) => write!(fmt, "{}", u),
-            Value::U64(u) => write!(fmt, "{}", u),
-            Value::String(ref s) => write!(fmt, "\"{}\"", s),
+            Value::F32(f) => write!(fmt, "F32({})", f),
+            Value::F64(f) => write!(fmt, "F64({})", f),
+            Value::I32(i) => write!(fmt, "I32({})", i),
+            Value::I64(i) => write!(fmt, "I64({})", i),
+            Value::U32(u) => write!(fmt, "U32({})", u),
+            Value::U64(u) => write!(fmt, "U64({})", u),
+            Value::String(ref s) => write!(fmt, "String({})", s),
             Value::Array(ref vec) => {
-                write!(fmt, "[")?;
+                write!(fmt, "Array[")?;
 
                 let mut first = true;
                 for value in vec.iter() {
@@ -79,7 +79,7 @@ impl fmt::Display for Value {
 
                 write!(fmt, "]")
             },
-            Value::Message(ref o) => write!(fmt, "{}", o),
+            Value::Message(ref o) => write!(fmt, "Message({})", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
             Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", vec.0.encode_hex::<String>()),

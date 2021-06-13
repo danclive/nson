@@ -337,19 +337,18 @@ impl Message {
 
 impl fmt::Debug for Message {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Message({:?})", self.inner)
+        write!(fmt, "Message{:?}", self.inner)
     }
 }
 
 impl fmt::Display for Message {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{{")?;
+        write!(fmt, "Message{{")?;
 
         let mut first = true;
         for (k, v) in self.iter() {
             if first {
                 first = false;
-                write!(fmt, " ")?;
             } else {
                 write!(fmt, ", ")?;
             }
@@ -357,7 +356,7 @@ impl fmt::Display for Message {
             write!(fmt, "{}: {}", k, v)?;
         }
 
-        write!(fmt, "{}}}", if !first { " " } else { "" })?;
+        write!(fmt, "}}")?;
 
         Ok(())
     }

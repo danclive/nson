@@ -178,7 +178,7 @@ pub(crate) fn read_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
     Ok(Binary(data))
 }
 
-fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
+pub fn decode_value(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
     match ElementType::from(tag) {
         Some(ElementType::F32) => {
             read_f32(reader).map(Value::F32)
