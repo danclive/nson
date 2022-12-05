@@ -1,5 +1,4 @@
 use serde_json::{self, json, Map};
-use base64;
 
 use crate::{Value, Message, Array, MessageId};
 
@@ -18,7 +17,7 @@ impl From<Value> for serde_json::Value {
                 json!(array)
             }
             Value::Message(v) => {
-                let map: Map<String, serde_json::Value> = v.into_iter().map(|(k, v)| (k.into(), v.into())).collect();
+                let map: Map<String, serde_json::Value> = v.into_iter().map(|(k, v)| (k, v.into())).collect();
                 json!(map)
             }
             Value::Bool(v) => json!(v),

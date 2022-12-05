@@ -2,12 +2,12 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::iter::FromIterator;
 use std::convert::Into;
-use std::io::{Write, Read, Cursor};
+use std::io::{Write, Read};
 
 use crate::value::Value;
 use crate::message::Message;
 use crate::message_id::MessageId;
-use crate::encode::{encode_array, encode_value, write_u32, EncodeResult};
+use crate::encode::{encode_array, EncodeResult};
 use crate::decode::{decode_array, DecodeResult};
 
 #[derive(Clone, PartialEq, Default, Eq)]
@@ -76,28 +76,6 @@ impl Array {
 
     pub fn decode(reader: &mut impl Read) -> DecodeResult<Array> {
         decode_array(reader)
-    }
-
-    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
-        let len = self.bytes_size();
-
-        let mut buf = Vec::with_capacity(len);
-        write_u32(&mut buf, len as u32)?;
-
-        for val in self.iter() {
-            buf.write_all(&[val.element_type() as u8])?;
-
-            encode_value(&mut buf, val)?;
-        }
-
-        buf.write_all(&[0])?;
-
-        Ok(buf)
-    }
-
-    pub fn from_bytes(slice: &[u8]) -> DecodeResult<Array> {
-        let mut reader = Cursor::new(slice);
-        decode_array(&mut reader)
     }
 
     pub fn bytes_size(&self) -> usize {

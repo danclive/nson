@@ -20,6 +20,7 @@ fn main() {
     let m = nson::msg! {"a": [123i32, 456f32], "b": "hello"};
     println!("{:?}", m);
     println!("{}", m);
+    println!("{}", u8::MAX);
 }
 
 #[derive(Serialize, Deserialize, Debug)]

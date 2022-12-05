@@ -1,6 +1,6 @@
 use std::result;
 use std::fmt;
-use std::io::{Write, Read, Cursor};
+use std::io::{Write, Read};
 use std::iter::{FromIterator, Extend};
 use std::cmp::Ordering;
 use std::ops::RangeFull;
@@ -10,12 +10,12 @@ use indexmap::IndexMap;
 use crate::value::{Value, TimeStamp, Binary};
 use crate::array::Array;
 use crate::message_id::MessageId;
-use crate::encode::{encode_message, encode_value, write_u32, write_cstring, EncodeResult};
+use crate::encode::{encode_message, EncodeResult};
 use crate::decode::{decode_message, DecodeResult};
 
 pub use indexmap::map::{IntoIter, Iter, IterMut, Entry, Keys, Values, ValuesMut, Drain};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Error {
     NotPresent,
     UnexpectedType,
@@ -281,29 +281,6 @@ impl Message {
 
     pub fn decode(reader: &mut impl Read) -> DecodeResult<Message> {
         decode_message(reader)
-    }
-
-    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
-        let len = self.bytes_size();
-
-        let mut buf = Vec::with_capacity(len);
-        write_u32(&mut buf, len as u32)?;
-
-        for (key, val) in self {
-            buf.write_all(&[val.element_type() as u8])?;
-            write_cstring(&mut buf, key)?;
-
-            encode_value(&mut buf, val)?;
-        }
-
-        buf.write_all(&[0])?;
-
-        Ok(buf)
-    }
-
-    pub fn from_bytes(slice: &[u8]) -> DecodeResult<Message> {
-        let mut reader = Cursor::new(slice);
-        decode_message(&mut reader)
     }
 
     pub fn extend<I: IntoIterator<Item=(String, Value)>>(&mut self, iter: I) {

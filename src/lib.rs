@@ -21,7 +21,6 @@ pub const MIN_NSON_SIZE: u32 = 4 + 1;
 mod tests {
     use crate::message_id::MessageId;
     use serde::{Serialize, Deserialize};
-    use serde_bytes;
 
     use crate::encode::{to_nson, to_bytes};
     use crate::decode::{from_nson, from_bytes};
@@ -47,16 +46,16 @@ mod tests {
         p: Vec<i32>
     }
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct NewType(u64);
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct NewType2(u32, u64);
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct NewType3 { a: i32, b: i64 }
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct NewType4;
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]

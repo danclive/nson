@@ -348,7 +348,7 @@ impl Value {
 
     pub fn as_binary(&self) -> Option<&Binary> {
         match self {
-            Value::Binary(b) => Some(&b),
+            Value::Binary(b) => Some(b),
             _ => None
         }
     }
@@ -393,7 +393,7 @@ impl Value {
                 }
                 "$mid" => {
                     if let Value::String(hex) = value {
-                        if let Ok(message_id) = MessageId::with_string(&hex) {
+                        if let Ok(message_id) = MessageId::with_string(hex) {
                             return message_id.into()
                         }
                     }

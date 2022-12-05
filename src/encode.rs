@@ -11,9 +11,11 @@ use crate::array::Array;
 use crate::serde_impl::encode::Encoder;
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum EncodeError {
     IoError(io::Error),
     InvalidMapKeyType(Value),
+    InvalidKeyLen(usize, String),
     Unknown(String)
 }
 
@@ -28,7 +30,10 @@ impl fmt::Display for EncodeError {
         match *self {
             EncodeError::IoError(ref inner) => inner.fmt(fmt),
             EncodeError::InvalidMapKeyType(ref nson) => {
-                write!(fmt, "Invalid map key type: {:?}", nson)
+                write!(fmt, "Invalid type: {:?}", nson)
+            }
+            EncodeError::InvalidKeyLen(ref len, ref desc) => {
+                write!(fmt, "Invalid key len: {}, {}", len, desc)
             }
             EncodeError::Unknown(ref inner) => inner.fmt(fmt)
         }
@@ -82,9 +87,13 @@ pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
     writer.write_all(&val.to_le_bytes()).map(|_|()).map_err(From::from)
 }
 
-pub(crate) fn write_cstring(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
+pub(crate) fn write_key(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
+    if s.is_empty() || s.len() == 255 {
+        return Err(EncodeError::InvalidKeyLen(s.len(), "key len must > 0 and < 255".to_string()))
+    }
+
+    writer.write_all(&[s.len() as u8 + 1])?;
     writer.write_all(s.as_bytes())?;
-    writer.write_all(&[0])?;
     Ok(())
 }
 
@@ -100,7 +109,39 @@ pub(crate) fn write_binary(writer: &mut impl Write, binary: &Binary) -> EncodeRe
     Ok(())
 }
 
+pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
+    let len = array.bytes_size();
+
+    write_u32(writer, len as u32)?;
+
+    for val in array.iter() {
+        encode_value(writer, val)?;
+    }
+
+    writer.write_all(&[0])?;
+
+    Ok(())
+}
+
+pub(crate) fn encode_message(writer: &mut impl Write, message: &Message) -> EncodeResult<()> {
+    let len = message.bytes_size();
+
+    write_u32(writer, len as u32)?;
+
+    for (key, val) in message {
+        write_key(writer, key)?;
+
+        encode_value(writer, val)?;
+    }
+
+    writer.write_all(&[0])?;
+
+    Ok(())
+}
+
 pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
+    writer.write_all(&[val.element_type() as u8])?;
+
     match *val {
         Value::F32(v) => write_f32(writer, v),
         Value::F64(v) => write_f64(writer, v),
@@ -119,39 +160,6 @@ pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
     }
 }
 
-pub fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
-    let len = array.bytes_size();
-
-    write_u32(writer, len as u32)?;
-
-    for val in array.iter() {
-        writer.write_all(&[val.element_type() as u8])?;
-
-        encode_value(writer, val)?;
-    }
-
-    writer.write_all(&[0])?;
-
-    Ok(())
-}
-
-pub fn encode_message(writer: &mut impl Write, message: &Message) -> EncodeResult<()> {
-    let len = message.bytes_size();
-
-    write_u32(writer, len as u32)?;
-
-    for (key, val) in message {
-        writer.write_all(&[val.element_type() as u8])?;
-        write_cstring(writer, key)?;
-
-        encode_value(writer, val)?;
-    }
-
-    writer.write_all(&[0])?;
-
-    Ok(())
-}
-
 pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
     where T: Serialize
 {
@@ -163,12 +171,51 @@ pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
     where T: Serialize
 {
     let value = to_nson(value)?;
+    value.to_bytes()
+}
 
-    if let Value::Message(msg) = value {
-        return msg.to_bytes()
+impl Value {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
+        let mut buf = Vec::new();
+        encode_value(&mut buf, self)?;
+        Ok(buf)
     }
+}
 
-    Err(EncodeError::InvalidMapKeyType(value))
+impl Message {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
+        let len = self.bytes_size();
+
+        let mut buf = Vec::with_capacity(len);
+        write_u32(&mut buf, len as u32)?;
+
+        for (key, val) in self {
+            write_key(&mut buf, key)?;
+
+            encode_value(&mut buf, val)?;
+        }
+
+        buf.write_all(&[0])?;
+
+        Ok(buf)
+    }
+}
+
+impl Array {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
+        let len = self.bytes_size();
+
+        let mut buf = Vec::with_capacity(len);
+        write_u32(&mut buf, len as u32)?;
+
+        for val in self.iter() {
+            encode_value(&mut buf, val)?;
+        }
+
+        buf.write_all(&[0])?;
+
+        Ok(buf)
+    }
 }
 
 #[cfg(test)]
