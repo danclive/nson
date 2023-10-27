@@ -1,8 +1,11 @@
-use std::fmt;
-use std::vec;
-use std::result;
-use std::marker::PhantomData;
-use std::{i32, u32};
+use core::fmt;
+use core::result;
+use core::marker::PhantomData;
+use core::{i32, u32};
+
+use alloc::vec;
+use alloc::string::{String, ToString};
+use alloc::format;
 
 use serde::de::{self, Deserialize, Deserializer, Visitor, MapAccess, SeqAccess, VariantAccess,
                 DeserializeSeed, EnumAccess};
@@ -10,12 +13,12 @@ use serde::de::{Error, Expected, Unexpected};
 
 use indexmap::IndexMap;
 
-use crate::value::{Value, TimeStamp, Binary};
-use crate::message::{Message, IntoIter};
-use crate::array::Array;
-use crate::message_id::MessageId;
-use crate::decode::DecodeError;
-use crate::decode::DecodeResult;
+use crate::core::value::{Value, TimeStamp, Binary};
+use crate::core::message::{Message, IntoIter};
+use crate::core::array::Array;
+use crate::core::message_id::MessageId;
+use super::DecodeError;
+use super::DecodeResult;
 
 impl de::Error for DecodeError {
     fn custom<T: fmt::Display>(msg: T) -> DecodeError {
@@ -242,6 +245,7 @@ impl<'de> Visitor<'de> for MessageVisitor {
         Ok(Message::new())
     }
 
+    #[cfg(feature = "std")]
     #[inline]
     fn visit_map<V>(self, mut visitor: V) -> result::Result<Message, V::Error>
         where V: MapAccess<'de>
@@ -249,6 +253,25 @@ impl<'de> Visitor<'de> for MessageVisitor {
         let mut inner = match visitor.size_hint() {
             Some(size) => IndexMap::with_capacity(size),
             None => IndexMap::new(),
+        };
+
+        while let Some((key, value)) = visitor.next_entry()? {
+            inner.insert(key, value);
+        }
+
+        Ok(inner.into())
+    }
+
+    #[cfg(not(feature = "std"))]
+    #[inline]
+    fn visit_map<V>(self, mut visitor: V) -> result::Result<Message, V::Error>
+        where V: MapAccess<'de>
+    {
+        use hash32::BuildHasherDefault;
+
+        let mut inner = match visitor.size_hint() {
+            Some(size) => IndexMap::with_capacity_and_hasher(size, BuildHasherDefault::new()),
+            None => IndexMap::with_hasher(BuildHasherDefault::new()),
         };
 
         while let Some((key, value)) = visitor.next_entry()? {
@@ -286,7 +309,7 @@ macro_rules! forward_to_deserialize {
             self,
             $(_: $ty,)*
             _visitor: V,
-        ) -> ::std::result::Result<V::Value, Self::Error>
+        ) -> ::core::result::Result<V::Value, Self::Error>
             where V: ::serde::de::Visitor<'de>
         {
             Err(::serde::de::Error::custom("unexpected Enum"))
@@ -299,7 +322,7 @@ macro_rules! forward_to_deserialize {
             self,
             $(_: $ty,)*
             visitor: V,
-        ) -> ::std::result::Result<V::Value, Self::Error>
+        ) -> ::core::result::Result<V::Value, Self::Error>
             where V: ::serde::de::Visitor<'de>
         {
             self.deserialize_any(visitor)

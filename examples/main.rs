@@ -1,8 +1,11 @@
-use nson::message_id::MessageId;
+#[cfg(feature = "std")]
 use nson::{decode, encode};
 use serde::{Serialize, Deserialize};
 
+#[cfg(feature = "std")]
 fn main() {
+    use nson::message_id::MessageId;
+
     let id = MessageId::new();
 
     println!("{:?}", id);
@@ -21,6 +24,11 @@ fn main() {
     println!("{:?}", m);
     println!("{}", m);
     println!("{}", u8::MAX);
+}
+
+#[cfg(not(feature = "std"))]
+fn main() {
+
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,7 +1,8 @@
-use nson::Value;
-use nson::msg;
-
+#[cfg(feature = "std")]
 fn main() {
+    use nson::core::Value;
+    use nson::msg;
+
     let a =  Value::I32(123);
     println!("{:?}", a.to_bytes());
 
@@ -22,4 +23,9 @@ fn main() {
     let b: i32 = nson::decode::from_bytes(&bytes).unwrap();
     println!("{:?}", b);
     assert_eq!(a, b);
+}
+
+#[cfg(not(feature = "std"))]
+fn main() {
+
 }

@@ -1,6 +1,6 @@
 [package]
 name          = "nson"
-version       = "0.13.0"
+version       = "0.14.0"
 license       = "MIT"
 authors       = ["danc <dangcheng@hotmail.com>"]
 description   = "NSON is a lightweight data-interchange format like JSON or BSON"
@@ -19,11 +19,28 @@ exclude       = [
 ]
 
 [dependencies]
-indexmap = "1.9"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"] }
-serde_bytes = "0.11"
-rand = "0.8"
-base64 = "0.13"
-hex = "0.4"
-once_cell = "1.15"
+indexmap = { version = "2.0", default-features = false, features = ["serde"] }
+hash32 = { version = "0.3", default-features = false, optional = true }
+rand = { version = "0.8", default-features = false }
+hex = { version = "0.4", default-features = false }
+once_cell = { version = "1.18", default-features = false }
+
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+serde_bytes = { version = "0.11", default-features = false, optional = true }
+
+serde_json = { version = "1.0", default-features = false, features = ["preserve_order"], optional = true }
+base64 = { version = "0.21", default-features = false, optional = true }
+
+embedded-io = { version = "0.6", default-features = false, optional = true }
+
+[features]
+default = ["std"]
+# default = ["alloc", "serde", "json", "embedded"]
+std = ["indexmap/std", "rand/std", "rand/std_rng", "hex/std", "once_cell/std",
+  "serde/std", "serde_bytes/std", "serde_json?/std", "base64?/std"]
+alloc = ["hex/alloc", "once_cell/alloc", "once_cell/critical-section",
+  "hash32", "serde?/alloc", "serde_bytes?/alloc", "serde_json?/alloc", "base64?/alloc",
+  "embedded-io?/alloc"]
+serde = ["dep:serde", "serde_bytes"]
+json = ["serde_json", "base64"]
+embedded = ["embedded-io"]

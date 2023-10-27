@@ -1,6 +1,11 @@
+use alloc::vec::Vec;
+use alloc::string::String;
+
 use serde_json::{self, json, Map};
 
-use crate::{Value, Message, Array, MessageId};
+use base64::{Engine, engine::general_purpose};
+
+use crate::core::{Value, Message, Array, MessageId};
 
 impl From<Value> for serde_json::Value {
     fn from(value: Value) -> Self {
@@ -22,7 +27,7 @@ impl From<Value> for serde_json::Value {
             }
             Value::Bool(v) => json!(v),
             Value::Null => json!(null),
-            Value::Binary(v) => json!({"$bin": base64::encode(v.0)}),
+            Value::Binary(v) => json!({"$bin": general_purpose::STANDARD.encode(v.0)}),
             Value::TimeStamp(v) => json!({"$tim": v.0}),
             Value::MessageId(v) => json!({"$mid": v.to_hex()})
         }
@@ -64,7 +69,7 @@ impl From<serde_json::Value> for Value {
                         ["$bin"] => {
                             if let Some(v) = map.get("$bin") {
                                 if let Some(hex) = v.as_str() {
-                                    if let Ok(bin) = base64::decode(hex) {
+                                    if let Ok(bin) = general_purpose::STANDARD.decode(hex) {
                                         return bin.into()
                                     }
                                 }
@@ -137,7 +142,7 @@ impl From<serde_json::Value> for Message {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod test {
     use crate::{msg, Value, MessageId};
     use crate::value::TimeStamp;

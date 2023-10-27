@@ -1,0 +1,143 @@
+use core::fmt;
+
+use alloc::string::{String, ToString, FromUtf8Error};
+
+use serde::ser::{self, Serialize};
+use serde::de::{Deserialize, Deserializer, Error};
+
+use crate::core::Value;
+use crate::core::spec::ElementType;
+
+pub mod decode;
+pub mod encode;
+
+use encode::Encoder;
+use decode::Decoder;
+
+impl ser::Serialize for ElementType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: ser::Serializer
+    {
+        let u = *self as u8;
+        serializer.serialize_u8(u)
+    }
+}
+
+impl <'de> Deserialize<'de> for ElementType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        let u = u8::deserialize(deserializer)?;
+
+        if let Some(a) = ElementType::from(u) {
+            return Ok(a)
+        }
+
+        Err(D::Error::custom("expecting ElementType"))
+    }
+}
+
+pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
+    where T: Serialize
+{
+    let ser = Encoder::new();
+    value.serialize(ser)
+}
+
+pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
+    where T: Deserialize<'de>
+{
+    let de = Decoder::new(value);
+    Deserialize::deserialize(de)
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum DecodeError {
+    FromUtf8Error(FromUtf8Error),
+    ExpectedField(&'static str),
+    UnknownField(String),
+    SyntaxError(String),
+    EndOfStream,
+    InvalidType(String),
+    InvalidLength(usize, String),
+    DuplicatedField(&'static str),
+    UnknownVariant(String),
+    InvalidValue(String),
+    Unknown(String)
+}
+
+impl From<FromUtf8Error> for DecodeError {
+    fn from(err: FromUtf8Error) -> DecodeError {
+        DecodeError::FromUtf8Error(err)
+    }
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
+            DecodeError::ExpectedField(field_type) => {
+                write!(fmt, "Expected a field of type `{}`", field_type)
+            }
+            DecodeError::UnknownField(ref field) => write!(fmt, "Unknown field `{}`", field),
+            DecodeError::SyntaxError(ref inner) => inner.fmt(fmt),
+            DecodeError::EndOfStream => write!(fmt, "End of stream"),
+            DecodeError::InvalidType(ref desc) => desc.fmt(fmt),
+            DecodeError::InvalidLength(ref len, ref desc) => {
+                write!(fmt, "Expecting length {}, {}", len, desc)
+            }
+            DecodeError::DuplicatedField(ref field) => write!(fmt, "Duplicated field `{}`", field),
+            DecodeError::UnknownVariant(ref var) => write!(fmt, "Unknown variant `{}`", var),
+            DecodeError::InvalidValue(ref desc) => desc.fmt(fmt),
+            DecodeError::Unknown(ref inner) => inner.fmt(fmt),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeError {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        match *self {
+            DecodeError::FromUtf8Error(ref inner) => Some(inner),
+            _ => None,
+        }
+    }
+}
+
+pub type DecodeResult<T> = Result<T, DecodeError>;
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum EncodeError {
+    InvalidMapKeyType(Value),
+    Unknown(String)
+}
+
+impl fmt::Display for EncodeError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            EncodeError::InvalidMapKeyType(ref nson) => {
+                write!(fmt, "Invalid type: {:?}", nson)
+            }
+            EncodeError::Unknown(ref inner) => inner.fmt(fmt)
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for EncodeError {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        match *self {
+            _ => None,
+        }
+    }
+}
+
+impl ser::Error for EncodeError {
+    fn custom<T: fmt::Display>(msg: T) -> EncodeError {
+        EncodeError::Unknown(msg.to_string())
+    }
+}
+
+pub type EncodeResult<T> = Result<T, EncodeError>;

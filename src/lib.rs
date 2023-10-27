@@ -1,23 +1,53 @@
-pub use value::{Value, Binary};
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(any(feature = "std", feature = "alloc")))]
+compile_error!("nson requires that either `std` (default) or `alloc` feature is enabled");
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+#[macro_use]
+extern crate std;
+
+pub mod core;
+mod macros;
+
+#[cfg(feature = "serde")]
+pub mod serde;
+
+#[cfg(feature = "std")]
+pub use value::{Value, Binary, TimeStamp};
+#[cfg(feature = "std")]
 pub use message::Message;
+#[cfg(feature = "std")]
 pub use array::Array;
+#[cfg(feature = "std")]
 pub use message_id::MessageId;
 
-mod macros;
+#[cfg(feature = "std")]
 pub mod value;
+#[cfg(feature = "std")]
 pub mod message;
+#[cfg(feature = "std")]
 pub mod array;
-pub mod encode;
-pub mod decode;
-pub mod serde_impl;
-pub mod spec;
-mod json;
+#[cfg(feature = "std")]
 pub mod message_id;
+#[cfg(feature = "std")]
+pub mod encode;
+#[cfg(feature = "std")]
+pub mod decode;
+#[cfg(feature = "std")]
+pub mod spec;
+#[cfg(feature = "json")]
+mod json;
+
+#[cfg(feature = "embedded")]
+pub mod embedded;
 
 pub const MAX_NSON_SIZE: u32 = 64 * 1024 * 1024; // 64 MB
 pub const MIN_NSON_SIZE: u32 = 4 + 1;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std", feature = "serde"))]
 mod tests {
     use crate::message_id::MessageId;
     use serde::{Serialize, Deserialize};

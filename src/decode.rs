@@ -1,30 +1,23 @@
-use std::{io, error, fmt, string};
+use std::{io, error, fmt};
 use std::io::{Read, Cursor};
 
 use serde::de::Deserialize;
+
+use crate::serde::decode::Decoder;
 
 use crate::spec::ElementType;
 use crate::value::{Value, Binary};
 use crate::message::Message;
 use crate::array::Array;
-use crate::serde_impl::decode::Decoder;
 use crate::message_id::MessageId;
 
 #[derive(Debug)]
 pub enum DecodeError {
     IoError(io::Error),
-    FromUtf8Error(string::FromUtf8Error),
     UnrecognizedElementType(u8),
-    ExpectedField(&'static str),
-    UnknownField(String),
-    SyntaxError(String),
-    EndOfStream,
-    InvalidType(String),
     InvalidLength(usize, String),
-    DuplicatedField(&'static str),
-    UnknownVariant(String),
-    InvalidValue(String),
-    Unknown(String)
+    Unknown(String),
+    Serde(crate::serde::DecodeError)
 }
 
 impl From<io::Error> for DecodeError {
@@ -33,9 +26,9 @@ impl From<io::Error> for DecodeError {
     }
 }
 
-impl From<string::FromUtf8Error> for DecodeError {
-    fn from(err: string::FromUtf8Error) -> DecodeError {
-        DecodeError::FromUtf8Error(err)
+impl From<crate::serde::DecodeError> for DecodeError {
+    fn from(err: crate::serde::DecodeError) -> DecodeError {
+        DecodeError::Serde(err)
     }
 }
 
@@ -43,24 +36,14 @@ impl fmt::Display for DecodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             DecodeError::IoError(ref inner) => inner.fmt(fmt),
-            DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
             DecodeError::UnrecognizedElementType(tag) => {
                 write!(fmt, "Unrecognized element type `{}`", tag)
             }
-            DecodeError::ExpectedField(field_type) => {
-                write!(fmt, "Expected a field of type `{}`", field_type)
-            }
-            DecodeError::UnknownField(ref field) => write!(fmt, "Unknown field `{}`", field),
-            DecodeError::SyntaxError(ref inner) => inner.fmt(fmt),
-            DecodeError::EndOfStream => write!(fmt, "End of stream"),
-            DecodeError::InvalidType(ref desc) => desc.fmt(fmt),
             DecodeError::InvalidLength(ref len, ref desc) => {
                 write!(fmt, "Expecting length {}, {}", len, desc)
             }
-            DecodeError::DuplicatedField(ref field) => write!(fmt, "Duplicated field `{}`", field),
-            DecodeError::UnknownVariant(ref var) => write!(fmt, "Unknown variant `{}`", var),
-            DecodeError::InvalidValue(ref desc) => desc.fmt(fmt),
             DecodeError::Unknown(ref inner) => inner.fmt(fmt),
+            DecodeError::Serde(ref inner) => inner.fmt(fmt),
         }
     }
 }
@@ -69,7 +52,6 @@ impl error::Error for DecodeError {
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             DecodeError::IoError(ref inner) => Some(inner),
-            DecodeError::FromUtf8Error(ref inner) => Some(inner),
             _ => None,
         }
     }
@@ -289,7 +271,7 @@ pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
     where T: Deserialize<'de>
 {
     let de = Decoder::new(value);
-    Deserialize::deserialize(de)
+    Deserialize::deserialize(de).map_err(DecodeError::Serde)
 }
 
 pub fn from_bytes<'de, T>(bytes: &[u8]) -> DecodeResult<T>

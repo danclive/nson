@@ -5,18 +5,19 @@ use std::{i32, i64};
 
 use serde::ser::{self, Serialize};
 
+use crate::serde::encode::Encoder;
+
 use crate::value::{Value, Binary};
 use crate::message::Message;
 use crate::array::Array;
-use crate::serde_impl::encode::Encoder;
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum EncodeError {
     IoError(io::Error),
-    InvalidMapKeyType(Value),
     InvalidKeyLen(usize, String),
-    Unknown(String)
+    Unknown(String),
+    Serde(crate::serde::EncodeError)
 }
 
 impl From<io::Error> for EncodeError {
@@ -25,17 +26,21 @@ impl From<io::Error> for EncodeError {
     }
 }
 
+impl From<crate::serde::EncodeError> for EncodeError {
+    fn from(err: crate::serde::EncodeError) -> EncodeError {
+        EncodeError::Serde(err)
+    }
+}
+
 impl fmt::Display for EncodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             EncodeError::IoError(ref inner) => inner.fmt(fmt),
-            EncodeError::InvalidMapKeyType(ref nson) => {
-                write!(fmt, "Invalid type: {:?}", nson)
-            }
             EncodeError::InvalidKeyLen(ref len, ref desc) => {
                 write!(fmt, "Invalid key len: {}, {}", len, desc)
             }
-            EncodeError::Unknown(ref inner) => inner.fmt(fmt)
+            EncodeError::Unknown(ref inner) => inner.fmt(fmt),
+            EncodeError::Serde(ref inner) => inner.fmt(fmt),
         }
     }
 }
@@ -164,7 +169,7 @@ pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
     where T: Serialize
 {
     let ser = Encoder::new();
-    value.serialize(ser)
+    value.serialize(ser).map_err(EncodeError::Serde)
 }
 
 pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
