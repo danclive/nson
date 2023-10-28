@@ -3,6 +3,9 @@
 #[cfg(not(any(feature = "std", feature = "alloc")))]
 compile_error!("nson requires that either `std` (default) or `alloc` feature is enabled");
 
+#[cfg(all(feature = "std", feature = "embedded"))]
+compile_error!("nson requires that either `std` (default) or `embedded` feature don't enabled same time");
+
 extern crate alloc;
 
 #[cfg(feature = "std")]

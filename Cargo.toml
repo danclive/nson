@@ -23,7 +23,7 @@ indexmap = { version = "2.0", default-features = false, features = ["serde"] }
 hash32 = { version = "0.3", default-features = false, optional = true }
 rand = { version = "0.8", default-features = false }
 hex = { version = "0.4", default-features = false }
-once_cell = { version = "1.18", default-features = false }
+once_cell = { version = "1.18", default-features = false, optional = true }
 
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 serde_bytes = { version = "0.11", default-features = false, optional = true }
@@ -35,10 +35,11 @@ embedded-io = { version = "0.6", default-features = false, optional = true }
 
 [features]
 default = ["std"]
-# default = ["alloc", "serde", "json", "embedded"]
+no_std = ["alloc", "serde", "json", "embedded"]
+
 std = ["indexmap/std", "rand/std", "rand/std_rng", "hex/std", "once_cell/std",
   "serde/std", "serde_bytes/std", "serde_json?/std", "base64?/std"]
-alloc = ["hex/alloc", "once_cell/alloc", "once_cell/critical-section",
+alloc = ["hex/alloc", "once_cell/alloc",
   "hash32", "serde?/alloc", "serde_bytes?/alloc", "serde_json?/alloc", "base64?/alloc",
   "embedded-io?/alloc"]
 serde = ["dep:serde", "serde_bytes"]

@@ -1,92 +1,90 @@
-use std::io::{self, Write};
-use std::fmt;
-use std::error;
-use std::{i32, i64};
+use core::fmt;
 
-use serde::ser::Serialize;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
-use crate::serde::encode::Encoder;
+use embedded_io::Write;
 
-use crate::value::{Value, Binary};
-use crate::message::Message;
-use crate::array::Array;
+use crate::core::{Value, Array, Message, Binary};
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum EncodeError {
-    IoError(io::Error),
+pub enum EncodeError<E: embedded_io::Error> {
+    WriteError(E),
     InvalidKeyLen(usize, String),
     Unknown(String),
+    #[cfg(feature = "serde")]
     Serde(crate::serde::EncodeError)
 }
 
-impl From<io::Error> for EncodeError {
-    fn from(err: io::Error) -> EncodeError {
-        EncodeError::IoError(err)
+impl<E: embedded_io::Error> From<E> for EncodeError<E> {
+    fn from(err: E) -> EncodeError<E> {
+        EncodeError::WriteError(err)
     }
 }
 
-impl From<crate::serde::EncodeError> for EncodeError {
-    fn from(err: crate::serde::EncodeError) -> EncodeError {
+#[cfg(feature = "serde")]
+impl<E: embedded_io::Error> From<crate::serde::EncodeError> for EncodeError<E> {
+    fn from(err: crate::serde::EncodeError) -> EncodeError<E> {
         EncodeError::Serde(err)
     }
 }
 
-impl fmt::Display for EncodeError {
+impl<E: embedded_io::Error> fmt::Display for EncodeError<E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            EncodeError::IoError(ref inner) => inner.fmt(fmt),
+            EncodeError::WriteError(ref inner) => inner.fmt(fmt),
             EncodeError::InvalidKeyLen(ref len, ref desc) => {
                 write!(fmt, "Invalid key len: {}, {}", len, desc)
             }
             EncodeError::Unknown(ref inner) => inner.fmt(fmt),
+            #[cfg(feature = "serde")]
             EncodeError::Serde(ref inner) => inner.fmt(fmt),
         }
     }
 }
 
-impl error::Error for EncodeError {
-    fn cause(&self) -> Option<&dyn error::Error> {
+impl<E: embedded_io::Error> embedded_io::Error for EncodeError<E> {
+    fn kind(&self) -> embedded_io::ErrorKind {
         match *self {
-            EncodeError::IoError(ref inner) => Some(inner),
-            _ => None,
+            EncodeError::WriteError(ref inner) => inner.kind(),
+            _ => embedded_io::ErrorKind::Other
         }
     }
 }
 
-pub type EncodeResult<T> = Result<T, EncodeError>;
+pub type EncodeResult<T, E> = Result<T, EncodeError<E>>;
 
 #[inline]
-pub(crate) fn write_i32(writer: &mut impl Write, val: i32) -> EncodeResult<()> {
+pub(crate) fn write_i32<W: Write>(writer: &mut W, val: i32) -> EncodeResult<(), W::Error> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_u32(writer: &mut impl Write, val: u32) -> EncodeResult<()> {
+pub(crate) fn write_u32<W: Write>(writer: &mut W, val: u32) -> EncodeResult<(), W::Error> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_i64(writer: &mut impl Write, val: i64) -> EncodeResult<()> {
+pub(crate) fn write_i64<W: Write>(writer: &mut W, val: i64) -> EncodeResult<(), W::Error> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_u64(writer: &mut impl Write, val: u64) -> EncodeResult<()> {
+pub(crate) fn write_u64<W: Write>(writer: &mut W, val: u64) -> EncodeResult<(), W::Error> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_f32(writer: &mut impl Write, val: f32) -> EncodeResult<()> {
+pub(crate) fn write_f32<W: Write>(writer: &mut W, val: f32) -> EncodeResult<(), W::Error> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
 
 #[inline]
-pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
+pub(crate) fn write_f64<W: Write>(writer: &mut W, val: f64) -> EncodeResult<(), W::Error> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
-
-pub(crate) fn write_key(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
+pub(crate) fn write_key<W: Write>(writer: &mut W, s: &str) -> EncodeResult<(), W::Error> {
     if s.is_empty() || s.len() >= 255 {
         return Err(EncodeError::InvalidKeyLen(s.len(), "key len must > 0 and < 255".to_string()))
     }
@@ -96,19 +94,19 @@ pub(crate) fn write_key(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
     Ok(())
 }
 
-pub(crate) fn write_string(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
+pub(crate) fn write_string<W: Write>(writer: &mut W, s: &str) -> EncodeResult<(), W::Error> {
     write_u32(writer, s.len() as u32 + 4)?;
     writer.write_all(s.as_bytes())?;
     Ok(())
 }
 
-pub(crate) fn write_binary(writer: &mut impl Write, binary: &Binary) -> EncodeResult<()> {
+pub(crate) fn write_binary<W: Write>(writer: &mut W, binary: &Binary) -> EncodeResult<(), W::Error> {
     write_u32(writer, binary.0.len() as u32 + 4)?;
     writer.write_all(&binary.0)?;
     Ok(())
 }
 
-pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
+pub(crate) fn encode_array<W: Write>(writer: &mut W, array: &Array) -> EncodeResult<(), W::Error> {
     let len = array.bytes_size();
 
     write_u32(writer, len as u32)?;
@@ -122,7 +120,7 @@ pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResu
     Ok(())
 }
 
-pub(crate) fn encode_message(writer: &mut impl Write, message: &Message) -> EncodeResult<()> {
+pub(crate) fn encode_message<W: Write>(writer: &mut W, message: &Message) -> EncodeResult<(), W::Error> {
     let len = message.bytes_size();
 
     write_u32(writer, len as u32)?;
@@ -138,7 +136,7 @@ pub(crate) fn encode_message(writer: &mut impl Write, message: &Message) -> Enco
     Ok(())
 }
 
-pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
+pub fn encode_value<W: Write>(writer: &mut W, val: &Value) -> EncodeResult<(), W::Error> {
     writer.write_all(&[val.element_type() as u8])?;
 
     match *val {
@@ -160,7 +158,7 @@ pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
 }
 
 impl Value {
-    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>, core::convert::Infallible> {
         let mut buf = Vec::new();
         encode_value(&mut buf, self)?;
         Ok(buf)
@@ -168,7 +166,7 @@ impl Value {
 }
 
 impl Message {
-    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>, core::convert::Infallible> {
         let len = self.bytes_size();
 
         let mut buf = Vec::with_capacity(len);
@@ -187,7 +185,7 @@ impl Message {
 }
 
 impl Array {
-    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
+    pub fn to_bytes(&self) -> EncodeResult<Vec<u8>, core::convert::Infallible> {
         let len = self.bytes_size();
 
         let mut buf = Vec::with_capacity(len);
@@ -203,39 +201,23 @@ impl Array {
     }
 }
 
-pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
+#[cfg(feature = "serde")]
+use serde::ser::Serialize;
+#[cfg(feature = "serde")]
+use crate::serde::encode::Encoder;
+
+#[cfg(feature = "serde")]
+pub fn to_nson<T: ?Sized, E: embedded_io::Error>(value: &T) -> EncodeResult<Value, E>
     where T: Serialize
 {
     let ser = Encoder::new();
     value.serialize(ser).map_err(EncodeError::Serde)
 }
 
-pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
+#[cfg(feature = "serde")]
+pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>, core::convert::Infallible>
     where T: Serialize
 {
     let value = to_nson(value)?;
     value.to_bytes()
-}
-
-#[cfg(test)]
-mod test {
-    use std::io::Cursor;
-    use crate::encode::encode_message;
-    use crate::decode::decode_message;
-    use crate::msg;
-
-    #[test]
-    fn encode() {
-        let msg = msg!{"aa": "bb", "cc": [1, 2, 3, 4]};
-
-        let mut buf: Vec<u8> = Vec::new();
-
-        encode_message(&mut buf, &msg).unwrap();
-
-        let mut reader = Cursor::new(buf);
-
-        let msg2 = decode_message(&mut reader).unwrap();
-
-        assert_eq!(msg, msg2);
-    }
 }

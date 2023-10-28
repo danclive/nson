@@ -1,6 +1,6 @@
 use core::fmt;
 
-use alloc::string::{String, ToString, FromUtf8Error};
+use alloc::string::{String, ToString};
 
 use serde::ser::{self, Serialize};
 use serde::de::{Deserialize, Deserializer, Error};
@@ -54,7 +54,6 @@ pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum DecodeError {
-    FromUtf8Error(FromUtf8Error),
     ExpectedField(&'static str),
     UnknownField(String),
     SyntaxError(String),
@@ -67,16 +66,10 @@ pub enum DecodeError {
     Unknown(String)
 }
 
-impl From<FromUtf8Error> for DecodeError {
-    fn from(err: FromUtf8Error) -> DecodeError {
-        DecodeError::FromUtf8Error(err)
-    }
-}
-
 impl fmt::Display for DecodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
+            // DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
             DecodeError::ExpectedField(field_type) => {
                 write!(fmt, "Expected a field of type `{}`", field_type)
             }
@@ -99,7 +92,6 @@ impl fmt::Display for DecodeError {
 impl std::error::Error for DecodeError {
     fn cause(&self) -> Option<&dyn std::error::Error> {
         match *self {
-            DecodeError::FromUtf8Error(ref inner) => Some(inner),
             _ => None,
         }
     }

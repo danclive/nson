@@ -1,15 +1,10 @@
 use core::fmt;
 use core::str::FromStr;
-use core::sync::atomic::{AtomicU16, Ordering};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::format;
 
-use once_cell::sync::Lazy;
-
 use hex::FromHexError;
-
-static COUNTER: Lazy<AtomicU16> = Lazy::new(|| AtomicU16::new(0));
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct MessageId {
@@ -26,13 +21,11 @@ pub type Result<T> = core::result::Result<T, Error>;
 //     0   1   2   3   4   5   6   7   8   9   10  11
 impl MessageId {
     /// Generate a new MessageId
-    pub fn new_raw(timestamp: u64, random: u32) -> MessageId {
-        let counter = gen_count();
-
+    pub fn new_raw(timestamp: u64, count: u16, random: u32) -> MessageId {
         let mut bytes: [u8; 12] = [0; 12];
 
-        bytes[..6].copy_from_slice(&timestamp.to_be_bytes());
-        bytes[6..8].copy_from_slice(&counter);
+        bytes[..6].copy_from_slice(&timestamp.to_be_bytes()[2..]);
+        bytes[6..8].copy_from_slice(&count.to_be_bytes());
         bytes[8..].copy_from_slice(&random.to_be_bytes());
 
         MessageId { bytes }
@@ -131,12 +124,14 @@ impl FromStr for MessageId {
     }
 }
 
-#[inline]
-fn gen_count() -> [u8; 2] {
-    let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+// static COUNTER: Lazy<AtomicU16> = Lazy::new(|| AtomicU16::new(0));
 
-    count.to_be_bytes()
-}
+// #[inline]
+// fn gen_count() -> [u8; 2] {
+//     let count = COUNTER.fetch_add(1, Ordering::SeqCst);
+
+//     count.to_be_bytes()
+// }
 
 #[derive(Debug)]
 pub enum Error {
