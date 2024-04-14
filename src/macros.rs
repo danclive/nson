@@ -3,8 +3,7 @@
 /// Construct a value::Value value from a literal.
 ///
 /// ```rust
-/// # #[macro_use]
-/// # extern crate nson;
+/// # use nson::nson;
 /// #
 /// # fn main() {
 /// let value = nson!({
@@ -206,28 +205,27 @@ macro_rules! nson {
     };
 
     ({}) => {
-        $crate::core::value::Value::Message($crate::msg!{})
+        $crate::core::value::Value::Map($crate::m!{})
     };
 
     ({$($tt:tt)+}) => {
-        $crate::core::value::Value::Message($crate::msg!{$($tt)+});
+        $crate::core::value::Value::Map($crate::m!{$($tt)+});
     };
 
     // Any Serialize type: numbers, strings, struct literals, variables etc.
     // Must be below every other rule.
     ($other:expr) => {
-        core::convert::From::from($other)
+        std::convert::From::from($other)
     };
 }
 
-/// Construct a msg::Message value.
+/// Construct a map::Map value.
 ///
 /// ```rust
-/// # #[macro_use]
-/// # extern crate nson;
+/// # use nson::m;
 /// #
 /// # fn main() {
-/// let value = msg! {
+/// let value = m! {
 ///     "code": 200,
 ///     "success": true,
 ///     "payload": {
@@ -240,10 +238,10 @@ macro_rules! nson {
 /// # }
 /// ```
 #[macro_export]
-macro_rules! msg {
-    () => {{ $crate::core::message::Message::with_capacity(8) }};
+macro_rules! m {
+    () => {{ $crate::core::map::Map::with_capacity(8) }};
     ( $($tt:tt)+ ) => {{
-        let mut object = $crate::core::message::Message::with_capacity(8);
+        let mut object = $crate::core::map::Map::with_capacity(8);
         $crate::nson!(@object object () ($($tt)+) ($($tt)+));
         object
     }};

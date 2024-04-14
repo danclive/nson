@@ -1,6 +1,6 @@
 [package]
 name          = "nson"
-version       = "0.14.0"
+version       = "0.14.0-rc1"
 license       = "MIT"
 authors       = ["danc <dangcheng@hotmail.com>"]
 description   = "NSON is a lightweight data-interchange format like JSON or BSON"
@@ -19,17 +19,17 @@ exclude       = [
 ]
 
 [dependencies]
-indexmap = { version = "2.0", default-features = false, features = ["serde"] }
+indexmap = { version = "2.2", default-features = false, features = ["serde"] }
 hash32 = { version = "0.3", default-features = false, optional = true }
 rand = { version = "0.8", default-features = false }
 hex = { version = "0.4", default-features = false }
-once_cell = { version = "1.18", default-features = false, optional = true }
+once_cell = { version = "1.19", default-features = false, optional = true }
 
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 serde_bytes = { version = "0.11", default-features = false, optional = true }
 
 serde_json = { version = "1.0", default-features = false, features = ["preserve_order"], optional = true }
-base64 = { version = "0.21", default-features = false, optional = true }
+base64 = { version = "0.22", default-features = false, optional = true }
 
 embedded-io = { version = "0.6", default-features = false, optional = true }
 

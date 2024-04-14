@@ -1,12 +1,12 @@
 #[cfg(feature = "std")]
 fn main() {
     use nson::core::Value;
-    use nson::msg;
+    use nson::m;
 
     let a =  Value::I32(123);
     println!("{:?}", a.to_bytes());
 
-    let m = msg! {
+    let m = m! {
         "a": 123i32,
         "b": {
             "c": 456

@@ -3,16 +3,16 @@ use alloc::string::{String, ToString};
 use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeTuple, SerializeTupleStruct,
     SerializeTupleVariant, SerializeMap, SerializeStruct, SerializeStructVariant};
 
-use crate::core::message::Message;
+use crate::core::map::Map;
 use crate::core::value::{Value, TimeStamp, Binary};
 use crate::core::array::Array;
-use crate::core::message_id::MessageId;
+use crate::core::id::Id;
 
 use super::to_nson;
 use super::EncodeError;
 use super::EncodeResult;
 
-impl Serialize for Message {
+impl Serialize for Map {
     #[inline]
    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
        where S: Serializer
@@ -39,12 +39,12 @@ impl Serialize for Value {
            Value::U64(v) => serializer.serialize_u64(v),
            Value::String(ref v) => serializer.serialize_str(v),
            Value::Array(ref v) => v.serialize(serializer),
-           Value::Message(ref v) => v.serialize(serializer),
+           Value::Map(ref v) => v.serialize(serializer),
            Value::Bool(v) => serializer.serialize_bool(v),
            Value::Null => serializer.serialize_unit(),
            Value::Binary(ref bytes) => serializer.serialize_bytes(&bytes.0),
            _ => {
-               let msg = self.to_extended_message();
+               let msg = self.to_extended_map();
                msg.serialize(serializer)
            }
        }
@@ -196,9 +196,9 @@ impl Serializer for Encoder {
    ) -> EncodeResult<Value>
        where T: Serialize
    {
-       let mut newtype_variant = Message::new();
+       let mut newtype_variant = Map::new();
        newtype_variant.insert(variant, to_nson(value)?);
-       Ok(Value::Message(newtype_variant))
+       Ok(Value::Map(newtype_variant))
    }
 
    #[inline]
@@ -237,7 +237,7 @@ impl Serializer for Encoder {
    #[inline]
    fn serialize_map(self, _len: Option<usize>) -> EncodeResult<Self::SerializeMap> {
        Ok(MapSerializer {
-           inner: Message::new(),
+           inner: Map::new(),
            next_key: None,
        })
    }
@@ -248,7 +248,7 @@ impl Serializer for Encoder {
        _name: &'static str,
        _len: usize
    ) -> EncodeResult<Self::SerializeStruct> {
-       Ok(StructSerializer { inner: Message::new() })
+       Ok(StructSerializer { inner: Map::new() })
    }
 
    #[inline]
@@ -261,7 +261,7 @@ impl Serializer for Encoder {
    ) -> EncodeResult<Self::SerializeStructVariant> {
        Ok(StructVariantSerializer {
            name: variant,
-           inner: Message::new(),
+           inner: Map::new(),
        })
    }
 }
@@ -336,14 +336,14 @@ impl SerializeTupleVariant for TupleVariantSerializer {
    }
 
    fn end(self) -> EncodeResult<Value> {
-       let mut tuple_variant = Message::new();
+       let mut tuple_variant = Map::new();
        tuple_variant.insert(self.name, self.inner);
-       Ok(Value::Message(tuple_variant))
+       Ok(Value::Map(tuple_variant))
    }
 }
 
 pub struct MapSerializer {
-   inner: Message,
+   inner: Map,
    next_key: Option<String>
 }
 
@@ -366,12 +366,12 @@ impl SerializeMap for MapSerializer {
    }
 
    fn end(self) -> EncodeResult<Value> {
-       Ok(Value::from_extended_message(self.inner))
+       Ok(Value::from_extended_map(self.inner))
    }
 }
 
 pub struct StructSerializer {
-   inner: Message
+   inner: Map
 }
 
 impl SerializeStruct for StructSerializer {
@@ -388,12 +388,12 @@ impl SerializeStruct for StructSerializer {
    }
 
    fn end(self) -> EncodeResult<Value> {
-       Ok(Value::from_extended_message(self.inner))
+       Ok(Value::from_extended_map(self.inner))
    }
 }
 
 pub struct StructVariantSerializer {
-   inner: Message,
+   inner: Map,
    name: &'static str
 }
 
@@ -411,12 +411,12 @@ impl SerializeStructVariant for StructVariantSerializer {
    }
 
    fn end(self) -> EncodeResult<Value> {
-       let var = Value::from_extended_message(self.inner);
+       let var = Value::from_extended_map(self.inner);
 
-       let mut struct_variant = Message::new();
+       let mut struct_variant = Map::new();
        struct_variant.insert(self.name, var);
 
-       Ok(Value::Message(struct_variant))
+       Ok(Value::Map(struct_variant))
    }
 }
 
@@ -430,12 +430,12 @@ impl Serialize for TimeStamp {
    }
 }
 
-impl Serialize for MessageId {
+impl Serialize for Id {
    #[inline]
    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
        where S: Serializer
    {
-       let value = Value::MessageId(*self);
+       let value = Value::Id(*self);
        value.serialize(serializer)
    }
 }

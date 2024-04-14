@@ -4,9 +4,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::borrow::ToOwned;
 
-use super::message_id::MessageId;
+use super::id::Id;
 use super::array::Array;
-use super::message::Message;
+use super::map::Map;
 use super::spec::ElementType;
 
 #[derive(Clone, PartialEq)]
@@ -19,12 +19,12 @@ pub enum Value {
     U64(u64),
     String(String),
     Array(Array),
-    Message(Message),
+    Map(Map),
     Bool(bool),
     Null,
     Binary(Binary),
     TimeStamp(TimeStamp),
-    MessageId(MessageId)
+    Id(Id)
 }
 
 impl Eq for Value {}
@@ -40,14 +40,14 @@ impl fmt::Debug for Value {
             Value::U64(u) => write!(fmt, "U64({:?})", u),
             Value::String(ref s) => write!(fmt, "String({:?})", s),
             Value::Array(ref vec) => write!(fmt, "Array({:?})", vec),
-            Value::Message(ref o) => write!(fmt, "{:?}", o),
+            Value::Map(ref o) => write!(fmt, "{:?}", o),
             Value::Bool(b) => write!(fmt, "Bool({:?})", b),
             Value::Null => write!(fmt, "Null"),
             Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", hex::encode(&vec.0)),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
-            Value::MessageId(ref id) => write!(fmt, "MessageId({})", id),
+            Value::Id(ref id) => write!(fmt, "Id({})", id),
         }
     }
 }
@@ -77,14 +77,14 @@ impl fmt::Display for Value {
 
                 write!(fmt, "]")
             },
-            Value::Message(ref o) => write!(fmt, "Message({})", o),
+            Value::Map(ref o) => write!(fmt, "Map({})", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
             Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", hex::encode(&vec.0)),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             },
-            Value::MessageId(ref id) => write!(fmt, "MessageId({})", id),
+            Value::Id(ref id) => write!(fmt, "Id({})", id),
         }
     }
 }
@@ -149,9 +149,9 @@ impl From<Array> for Value {
     }
 }
 
-impl From<Message> for Value {
-    fn from(d: Message) -> Value {
-        Value::Message(d)
+impl From<Map> for Value {
+    fn from(d: Map) -> Value {
+        Value::Map(d)
     }
 }
 
@@ -169,7 +169,7 @@ impl From<Vec<u8>> for Value {
 
 impl From<[u8; 12]> for Value {
     fn from(o: [u8; 12]) -> Value {
-        Value::MessageId(MessageId::with_bytes(o))
+        Value::Id(Id::with_bytes(o))
     }
 }
 
@@ -179,15 +179,15 @@ impl From<TimeStamp> for Value {
     }
 }
 
-impl From<MessageId> for Value {
-    fn from(o: MessageId) -> Value {
-        Value::MessageId(o)
+impl From<Id> for Value {
+    fn from(o: Id) -> Value {
+        Value::Id(o)
     }
 }
 
-impl<'a> From<&'a MessageId> for Value {
-    fn from(o: &'a MessageId) -> Value {
-        Value::MessageId(o.to_owned())
+impl<'a> From<&'a Id> for Value {
+    fn from(o: &'a Id) -> Value {
+        Value::Id(o.to_owned())
     }
 }
 
@@ -211,7 +211,7 @@ macro_rules! value_from_impls {
 
 value_from_impls! {
     f32 f64 i32 i64 &str String &String Array
-    Message bool Vec<u8> MessageId
+    Map bool Vec<u8> Id
 }
 
 impl Value {
@@ -225,12 +225,12 @@ impl Value {
             Value::U64(..) => ElementType::U64,
             Value::String(..) => ElementType::String,
             Value::Array(..) => ElementType::Array,
-            Value::Message(..) => ElementType::Message,
+            Value::Map(..) => ElementType::Map,
             Value::Bool(..) => ElementType::Bool,
             Value::Null => ElementType::Null,
             Value::Binary(..) => ElementType::Binary,
             Value::TimeStamp(..) => ElementType::TimeStamp,
-            Value::MessageId(..) => ElementType::MessageId
+            Value::Id(..) => ElementType::Id
         }
     }
 
@@ -244,12 +244,12 @@ impl Value {
             Value::U64(_) => 8,
             Value::String(s) => 4 + s.len(),
             Value::Array(a) => a.bytes_size(),
-            Value::Message(m) => m.bytes_size(),
+            Value::Map(m) => m.bytes_size(),
             Value::Bool(_) => 1,
             Value::Null => 0,
             Value::Binary(b) => 4 + b.0.len(),
             Value::TimeStamp(_) => 8,
-            Value::MessageId(_) => 12
+            Value::Id(_) => 12
         }
     }
 
@@ -309,9 +309,9 @@ impl Value {
         }
     }
 
-    pub fn as_message(&self) -> Option<&Message> {
+    pub fn as_map(&self) -> Option<&Map> {
         match self {
-            Value::Message(ref v) => Some(v),
+            Value::Map(ref v) => Some(v),
             _ => None,
         }
     }
@@ -323,9 +323,9 @@ impl Value {
         }
     }
 
-    pub fn as_message_id(&self) -> Option<&MessageId> {
+    pub fn as_id(&self) -> Option<&Id> {
         match self {
-            Value::MessageId(ref v) => Some(v),
+            Value::Id(ref v) => Some(v),
             _ => None,
         }
     }
@@ -351,20 +351,20 @@ impl Value {
         }
     }
 
-    pub(crate) fn to_extended_message(&self) -> Message {
+    pub(crate) fn to_extended_map(&self) -> Map {
         match self {
             Value::Binary(ref v) => {
-                let mut msg = Message::with_capacity(1);
+                let mut msg = Map::with_capacity(1);
                 msg.insert("$bin", hex::encode(&v.0));
                 msg
             }
             Value::TimeStamp(v) => {
-                let mut msg = Message::with_capacity(1);
+                let mut msg = Map::with_capacity(1);
                 msg.insert("$tim", v.0);
                 msg
             }
-            Value::MessageId(ref v) => {
-                let mut msg = Message::with_capacity(1);
+            Value::Id(ref v) => {
+                let mut msg = Map::with_capacity(1);
                 msg.insert("$mid", v.to_hex());
                 msg
             }
@@ -372,7 +372,7 @@ impl Value {
         }
     }
 
-    pub(crate) fn from_extended_message(msg: Message) -> Value {
+    pub(crate) fn from_extended_map(msg: Map) -> Value {
         if msg.len() == 1 {
             let (key, value) = msg.get_index(0).unwrap();
 
@@ -391,8 +391,8 @@ impl Value {
                 }
                 "$mid" => {
                     if let Value::String(hex) = value {
-                        if let Ok(message_id) = MessageId::with_string(hex) {
-                            return message_id.into()
+                        if let Ok(id) = Id::with_string(hex) {
+                            return id.into()
                         }
                     }
                 }
@@ -400,7 +400,7 @@ impl Value {
             }
         }
 
-        Value::Message(msg)
+        Value::Map(msg)
     }
 }
 

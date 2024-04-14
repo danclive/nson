@@ -1,70 +1,26 @@
-#[cfg(any(feature = "std", feature = "serde"))]
-use serde::{Serialize, Deserialize};
-
-#[cfg(feature = "std")]
-fn main1() {
-    use nson::{decode, encode};
-    use nson::message_id::MessageId;
-
-    let id = MessageId::new();
-
-    println!("{:?}", id);
-    println!("{:?}", id.timestamp());
-    println!("{:?}", id.bytes());
-
-    let a = A { b: B(123) };
-
-    let ret = encode::to_nson(&a);
-    println!("{:?}", ret);
-
-    let ret = decode::from_nson::<A>(ret.unwrap());
-    println!("{:?}", ret);
-
-    let m = nson::msg! {"a": [123i32, 456f32], "b": "hello"};
-    println!("{:?}", m);
-    println!("{}", m);
-    println!("{}", u8::MAX);
-}
-
-#[cfg(all(feature = "alloc", feature = "serde", feature = "embedded"))]
-fn main2() {
-    use nson::embedded::{decode, encode};
-    use nson::core::message_id::MessageId;
-
-    let id = MessageId::new_raw(123, 45, 678);
-
-    println!("{:?}", id);
-    println!("{:?}", id.timestamp());
-    println!("{:?}", id.bytes());
-
-    let a = A { b: B(123) };
-
-    let ret = encode::to_nson::<_, core::convert::Infallible>(&a);
-    println!("{:?}", ret);
-
-    let ret = decode::from_nson::<A, core::convert::Infallible>(ret.unwrap());
-    println!("{:?}", ret);
-
-    let m = nson::msg! {"a": [123i32, 456f32], "b": "hello"};
-    println!("{:?}", m);
-    println!("{}", m);
-    println!("{}", u8::MAX);
-}
+use nson::m;
 
 fn main() {
-    #[cfg(feature = "std")]
-    main1();
+    let mut value = m!{
+        "code": 200,
+        "success": true,
+        "payload": {
+            "some": [
+                "pay",
+                "loads",
+            ]
+        }
+    };
 
-    #[cfg(all(feature = "alloc", feature = "serde", feature = "embedded"))]
-    main2();
+    println!("{:?}", value);
+    // print: Map{"code": I32(200), "success": Bool(true), "payload": Map{"some": Array([String("pay"), String("loads")])}}
+
+    println!("{:?}", value.get("code"));
+    // print: Some(I32(200))
+
+    // insert new key, value
+    value.insert("hello", "world");
+
+    println!("{:?}", value.get("hello"));
+    // print: Some(String("world"))
 }
-
-#[cfg(any(feature = "std", feature = "serde"))]
-#[derive(Serialize, Deserialize, Debug)]
-struct A {
-    b: B
-}
-
-#[cfg(any(feature = "std", feature = "serde"))]
-#[derive(Serialize, Deserialize, Debug)]
-struct B(u64);

@@ -6,8 +6,8 @@ use alloc::vec::Vec;
 use alloc::string::String;
 
 use super::value::Value;
-use super::message::Message;
-use super::message_id::MessageId;
+use super::map::Map;
+use super::id::Id;
 
 #[derive(Clone, PartialEq, Default, Eq)]
 pub struct Array {
@@ -113,7 +113,7 @@ macro_rules! array_from_impls {
 
 array_from_impls! {
     f32 f64 i32 i64 u32 u64 &str String &String Array
-    Message bool Vec<u8> MessageId
+    Map bool Vec<u8> Id
 }
 
 impl IntoIterator for Array {

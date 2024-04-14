@@ -1,3 +1,44 @@
+//! NSON is short for NEW JSON, a binary encoded serialization of JSON-like documents. Similar to JSON, NSON supports embedding maps and arrays within other maps and arrays. Unlike JSON, NSON also includes int32/uint32, int64/uint64, f32/f64, binary, timestamp, id types.
+//!
+//! NSON borrows from BSON and can be thought of as a streamlined version of BSON, removing some of the less common or mongodb-proprietary types. NSON also categorizes Double into f32 and f64, considering that f64 is not needed in most cases for high-precision floating-point numbers. Also added uint32 and uint64 to make it clear that values cannot be complex.
+//!
+//! In the rust language, NSON can be easily written without necessarily serializing/unserializing to structures, thanks to the macro.
+//!
+//! In addition, NSON is convenient to parse from binary, and the library implements "no_std", which can be used on microcontrollers.
+//!
+//! ## Example
+//!
+//! ```rust
+//! use nson::m;
+//!
+//! fn main() {
+//!     let mut value = m!{
+//!         "code": 200,
+//!         "success": true,
+//!         "payload": {
+//!             "some": [
+//!                 "pay",
+//!                 "loads",
+//!             ]
+//!         }
+//!     };
+//!
+//!     println!("{:?}", value);
+//!     // print: Map{"code": I32(200), "success": Bool(true), "payload":
+//!     // Map{"some": Array([String("pay"), String("loads")])}}
+//!
+//!     println!("{:?}", value.get("code"));
+//!     // print: Some(I32(200))
+//!
+//!     // insert new key, value
+//!     value.insert("hello", "world");
+//!
+//!     println!("{:?}", value.get("hello"));
+//!     // print: Some(String("world"))
+//! }
+//! ```
+//!
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(not(any(feature = "std", feature = "alloc")))]
@@ -21,20 +62,20 @@ pub mod serde;
 #[cfg(feature = "std")]
 pub use value::{Value, Binary, TimeStamp};
 #[cfg(feature = "std")]
-pub use message::Message;
+pub use map::Map;
 #[cfg(feature = "std")]
 pub use array::Array;
 #[cfg(feature = "std")]
-pub use message_id::MessageId;
+pub use id::Id;
 
 #[cfg(feature = "std")]
 pub mod value;
 #[cfg(feature = "std")]
-pub mod message;
+pub mod map;
 #[cfg(feature = "std")]
 pub mod array;
 #[cfg(feature = "std")]
-pub mod message_id;
+pub mod id;
 #[cfg(feature = "std")]
 pub mod encode;
 #[cfg(feature = "std")]
@@ -52,12 +93,12 @@ pub const MIN_NSON_SIZE: u32 = 4 + 1;
 
 #[cfg(all(test, feature = "std", feature = "serde"))]
 mod tests {
-    use crate::message_id::MessageId;
+    use crate::id::Id;
     use serde::{Serialize, Deserialize};
 
     use crate::encode::{to_nson, to_bytes};
     use crate::decode::{from_nson, from_bytes};
-    use crate::msg;
+    use crate::m;
     use crate::value::{TimeStamp, Binary};
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -69,7 +110,7 @@ mod tests {
         #[serde(with = "serde_bytes")]
         e: Vec<u8>,
         t: TimeStamp,
-        i: MessageId,
+        i: Id,
         j: Binary,
         k: NewType,
         l: NewType2,
@@ -106,7 +147,7 @@ mod tests {
             d: "4".to_string(),
             e: vec![1, 2, 3, 4],
             t: TimeStamp(123),
-            i: MessageId::new(),
+            i: Id::new(),
             j : vec![5, 6, 7, 8].into(),
             k: NewType(123),
             l: NewType2(456, 789),
@@ -132,12 +173,12 @@ mod tests {
     #[test]
     fn binary() {
         let byte = vec![1u8, 2, 3, 4];
-        let msg = msg!{"aa": "bb", "byte": byte.clone()};
+        let msg = m!{"aa": "bb", "byte": byte.clone()};
         let byte2 = msg.get_binary("byte").unwrap();
 
         assert_eq!(byte, byte2.0);
 
-        let mut msg2 = msg!{"aa": "bb"};
+        let mut msg2 = m!{"aa": "bb"};
         msg2.insert("byte", byte);
 
         assert_eq!(msg, msg2);

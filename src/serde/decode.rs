@@ -14,9 +14,9 @@ use serde::de::{Error, Expected, Unexpected};
 use indexmap::IndexMap;
 
 use crate::core::value::{Value, TimeStamp, Binary};
-use crate::core::message::{Message, IntoIter};
+use crate::core::map::{Map, IntoIter};
 use crate::core::array::Array;
-use crate::core::message_id::MessageId;
+use crate::core::id::Id;
 use super::DecodeError;
 use super::DecodeResult;
 
@@ -54,7 +54,7 @@ impl de::Error for DecodeError {
     }
 }
 
-impl<'de> Deserialize<'de> for Message {
+impl<'de> Deserialize<'de> for Map {
     /// Deserialize this value given this `Deserializer`.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
@@ -62,10 +62,10 @@ impl<'de> Deserialize<'de> for Message {
         deserializer
             .deserialize_map(ValueVisitor)
             .and_then(|nson|
-                if let Value::Message(message) = nson {
-                    Ok(message)
+                if let Value::Map(map) = nson {
+                    Ok(map)
                 } else {
-                    let err = format!("expected message, found extended JSON data type: {}", nson);
+                    let err = format!("expected map, found extended JSON data type: {}", nson);
                     Err(de::Error::invalid_type(Unexpected::Map, &&*err))
             })
     }
@@ -208,8 +208,8 @@ impl<'de> Visitor<'de> for ValueVisitor {
     fn visit_map<V>(self, visitor: V) -> Result<Value, V::Error>
         where V: MapAccess<'de>
     {
-        let values = MessageVisitor::new().visit_map(visitor)?;
-        Ok(Value::from_extended_message(values))
+        let values = MapVisitor::new().visit_map(visitor)?;
+        Ok(Value::from_extended_map(values))
     }
 
     #[inline]
@@ -221,33 +221,33 @@ impl<'de> Visitor<'de> for ValueVisitor {
 }
 
 #[derive(Default)]
-pub struct MessageVisitor {
-    marker: PhantomData<Message>
+pub struct MapVisitor {
+    marker: PhantomData<Map>
 }
 
-impl MessageVisitor {
-    pub fn new() -> MessageVisitor {
-        MessageVisitor { marker: PhantomData }
+impl MapVisitor {
+    pub fn new() -> MapVisitor {
+        MapVisitor { marker: PhantomData }
     }
 }
 
-impl<'de> Visitor<'de> for MessageVisitor {
-    type Value = Message;
+impl<'de> Visitor<'de> for MapVisitor {
+    type Value = Map;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "expecting ordered object")
     }
 
     #[inline]
-    fn visit_unit<E>(self) -> result::Result<Message, E>
+    fn visit_unit<E>(self) -> result::Result<Map, E>
         where E: de::Error
     {
-        Ok(Message::new())
+        Ok(Map::new())
     }
 
     #[cfg(feature = "std")]
     #[inline]
-    fn visit_map<V>(self, mut visitor: V) -> result::Result<Message, V::Error>
+    fn visit_map<V>(self, mut visitor: V) -> result::Result<Map, V::Error>
         where V: MapAccess<'de>
     {
         let mut inner = match visitor.size_hint() {
@@ -264,7 +264,7 @@ impl<'de> Visitor<'de> for MessageVisitor {
 
     #[cfg(not(feature = "std"))]
     #[inline]
-    fn visit_map<V>(self, mut visitor: V) -> result::Result<Message, V::Error>
+    fn visit_map<V>(self, mut visitor: V) -> result::Result<Map, V::Error>
         where V: MapAccess<'de>
     {
         use hash32::BuildHasherDefault;
@@ -359,7 +359,7 @@ impl<'de> Deserializer<'de> for Decoder {
                     }
                 )
             }
-            Value::Message(v) => {
+            Value::Map(v) => {
                 let len = v.len();
                 visitor.visit_map(
                     MapDecoder {
@@ -373,7 +373,7 @@ impl<'de> Deserializer<'de> for Decoder {
             Value::Null => visitor.visit_unit(),
             Value::Binary(v) => visitor.visit_bytes(&v.0),
             _ => {
-                let message = value.to_extended_message();
+                let message = value.to_extended_map();
                 let len = message.len();
                 visitor.visit_map(
                     MapDecoder {
@@ -407,7 +407,7 @@ impl<'de> Deserializer<'de> for Decoder {
         where V: Visitor<'de>
     {
         let value = match self.value.take() {
-            Some(Value::Message(value)) => value,
+            Some(Value::Map(value)) => value,
             Some(Value::String(variant)) => {
                 return visitor.visit_enum(
                     EnumDecoder {
@@ -549,7 +549,7 @@ impl<'de> VariantAccess<'de> for VariantDecoder {
     ) -> DecodeResult<V::Value>
         where V: Visitor<'de>
     {
-        if let Value::Message(fields) = self.val.take().ok_or(DecodeError::EndOfStream)? {
+        if let Value::Map(fields) = self.val.take().ok_or(DecodeError::EndOfStream)? {
             let de = MapDecoder {
                 len: fields.len(),
                 iter: fields.into_iter(),
@@ -734,15 +734,15 @@ impl<'de> Deserialize<'de> for TimeStamp {
     }
 }
 
-impl<'de> Deserialize<'de> for MessageId {
+impl<'de> Deserialize<'de> for Id {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
         match Value::deserialize(deserializer)? {
-            Value::MessageId(id) => {
+            Value::Id(id) => {
                 Ok(id)
             }
-            _ => Err(D::Error::custom("expecting MessageId")),
+            _ => Err(D::Error::custom("expecting Id")),
         }
     }
 }

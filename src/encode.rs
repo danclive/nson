@@ -8,7 +8,7 @@ use serde::ser::Serialize;
 use crate::serde::encode::Encoder;
 
 use crate::value::{Value, Binary};
-use crate::message::Message;
+use crate::map::Map;
 use crate::array::Array;
 
 #[derive(Debug)]
@@ -122,12 +122,12 @@ pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResu
     Ok(())
 }
 
-pub(crate) fn encode_message(writer: &mut impl Write, message: &Message) -> EncodeResult<()> {
-    let len = message.bytes_size();
+pub(crate) fn encode_map(writer: &mut impl Write, map: &Map) -> EncodeResult<()> {
+    let len = map.bytes_size();
 
     write_u32(writer, len as u32)?;
 
-    for (key, val) in message {
+    for (key, val) in map {
         write_key(writer, key)?;
 
         encode_value(writer, val)?;
@@ -150,12 +150,12 @@ pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
         Value::U64(v) => write_u64(writer, v),
         Value::String(ref s) => write_string(writer, s),
         Value::Array(ref a) => encode_array(writer, a),
-        Value::Message(ref o) => encode_message(writer, o),
+        Value::Map(ref o) => encode_map(writer, o),
         Value::Bool(b) => writer.write_all(&[if b { 0x01 } else { 0x00 }]).map_err(From::from),
         Value::Null => Ok(()),
         Value::Binary(ref binary) => write_binary(writer, binary),
         Value::TimeStamp(v) => write_u64(writer, v.0),
-        Value::MessageId(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
+        Value::Id(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
     }
 }
 
@@ -167,7 +167,7 @@ impl Value {
     }
 }
 
-impl Message {
+impl Map {
     pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
         let len = self.bytes_size();
 
@@ -220,22 +220,22 @@ pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
 #[cfg(test)]
 mod test {
     use std::io::Cursor;
-    use crate::encode::encode_message;
-    use crate::decode::decode_message;
-    use crate::msg;
+    use crate::encode::encode_map;
+    use crate::decode::decode_map;
+    use crate::m;
 
     #[test]
     fn encode() {
-        let msg = msg!{"aa": "bb", "cc": [1, 2, 3, 4]};
+        let m = m!{"aa": "bb", "cc": [1, 2, 3, 4]};
 
         let mut buf: Vec<u8> = Vec::new();
 
-        encode_message(&mut buf, &msg).unwrap();
+        encode_map(&mut buf, &m).unwrap();
 
         let mut reader = Cursor::new(buf);
 
-        let msg2 = decode_message(&mut reader).unwrap();
+        let m2 = decode_map(&mut reader).unwrap();
 
-        assert_eq!(msg, msg2);
+        assert_eq!(m, m2);
     }
 }

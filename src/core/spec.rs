@@ -6,12 +6,12 @@ pub const U32: u8 = 0x05;
 pub const U64: u8 = 0x06;
 pub const STRING: u8 = 0x07;
 pub const ARRAY: u8 = 0x08;
-pub const MESSAGE: u8 = 0x09;
+pub const MAP: u8 = 0x09;
 pub const BOOL: u8 = 0x0A;
 pub const NULL: u8 = 0x0B;
 pub const BINARY: u8 = 0x0C;
 pub const TIMESTAMP: u8 = 0x0D;
-pub const MESSAGE_ID: u8 = 0x0E;
+pub const ID: u8 = 0x0E;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -24,12 +24,12 @@ pub enum ElementType {
     U64 = U64,
     String = STRING,
     Array = ARRAY,
-    Message = MESSAGE,
+    Map = MAP,
     Bool = BOOL,
     Null = NULL,
     Binary = BINARY,
     TimeStamp = TIMESTAMP,
-    MessageId = MESSAGE_ID
+    Id = ID
 }
 
 impl ElementType {
@@ -43,12 +43,12 @@ impl ElementType {
             U64 => ElementType::U64,
             STRING => ElementType::String,
             ARRAY => ElementType::Array,
-            MESSAGE => ElementType::Message,
+            MAP => ElementType::Map,
             BOOL => ElementType::Bool,
             NULL => ElementType::Null,
             BINARY => ElementType::Binary,
             TIMESTAMP => ElementType::TimeStamp,
-            MESSAGE_ID => ElementType::MessageId,
+            ID => ElementType::Id,
             _ => return None
         })
     }

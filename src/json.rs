@@ -5,7 +5,7 @@ use serde_json::{self, json, Map};
 
 use base64::{Engine, engine::general_purpose};
 
-use crate::core::{Value, Message, Array, MessageId};
+use crate::core::{Value, Map as NsonMap, Array, Id};
 
 impl From<Value> for serde_json::Value {
     fn from(value: Value) -> Self {
@@ -21,7 +21,7 @@ impl From<Value> for serde_json::Value {
                 let array: Vec<serde_json::Value> = v.into_iter().map(|v| v.into()).collect();
                 json!(array)
             }
-            Value::Message(v) => {
+            Value::Map(v) => {
                 let map: Map<String, serde_json::Value> = v.into_iter().map(|(k, v)| (k, v.into())).collect();
                 json!(map)
             }
@@ -29,7 +29,7 @@ impl From<Value> for serde_json::Value {
             Value::Null => json!(null),
             Value::Binary(v) => json!({"$bin": general_purpose::STANDARD.encode(v.0)}),
             Value::TimeStamp(v) => json!({"$tim": v.0}),
-            Value::MessageId(v) => json!({"$mid": v.to_hex()})
+            Value::Id(v) => json!({"$mid": v.to_hex()})
         }
     }
 }
@@ -78,7 +78,7 @@ impl From<serde_json::Value> for Value {
                         ["$mid"] => {
                             if let Some(v) = map.get("$mid") {
                                 if let Some(hex) = v.as_str() {
-                                    if let Ok(message_id) = MessageId::with_string(hex) {
+                                    if let Ok(message_id) = Id::with_string(hex) {
                                         return message_id.into()
                                     }
                                 }
@@ -116,28 +116,28 @@ impl From<serde_json::Value> for Value {
                     }
                 }
 
-                let message: Message = map.into_iter().map(|(k, v)| (k, v.into())).collect();
+                let map: NsonMap = map.into_iter().map(|(k, v)| (k, v.into())).collect();
 
-                Value::Message(message)
+                Value::Map(map)
             }
             serde_json::Value::Null => Value::Null
         }
     }
 }
 
-impl From<Message> for serde_json::Value {
-    fn from(message: Message) -> Self {
-        Value::Message(message).into()
+impl From<NsonMap> for serde_json::Value {
+    fn from(map: NsonMap) -> Self {
+        Value::Map(map).into()
     }
 }
 
-impl From<serde_json::Value> for Message {
+impl From<serde_json::Value> for NsonMap {
     fn from(json: serde_json::Value) -> Self {
         let value: Value = json.into();
 
         match value {
-            Value::Message(message) => message,
-            _ => Message::new()
+            Value::Map(map) => map,
+            _ => NsonMap::new()
         }
     }
 }

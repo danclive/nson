@@ -8,9 +8,9 @@ use crate::serde::decode::Decoder;
 
 use crate::spec::ElementType;
 use crate::value::{Value, Binary};
-use crate::message::Message;
+use crate::map::Map;
 use crate::array::Array;
-use crate::message_id::MessageId;
+use crate::id::Id;
 
 #[derive(Debug)]
 pub enum DecodeError {
@@ -181,18 +181,18 @@ pub(crate) fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     Ok(arr)
 }
 
-pub(crate) fn decode_message(reader: &mut impl Read) -> DecodeResult<Message> {
-    let mut msg = Message::new();
+pub(crate) fn decode_map(reader: &mut impl Read) -> DecodeResult<Map> {
+    let mut map = Map::new();
 
     // disregard the length: using Read::take causes infinite type recursion
     let len = read_u32(reader)?;
 
     if len < crate::MIN_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid message length of {}", len)));
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid map length of {}", len)));
     }
 
     if len > crate::MAX_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid message length of {}", len)));
+        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid map length of {}", len)));
     }
 
     loop {
@@ -212,10 +212,10 @@ pub(crate) fn decode_message(reader: &mut impl Read) -> DecodeResult<Message> {
 
         let val = decode_value(reader)?;
 
-        msg.insert(key, val);
+        map.insert(key, val);
     }
 
-    Ok(msg)
+    Ok(map)
 }
 
 pub fn decode_value(reader: &mut impl Read) -> DecodeResult<Value> {
@@ -246,8 +246,8 @@ fn decode_value_with_tag(reader: &mut impl Read, tag: u8) -> DecodeResult<Value>
         Some(ElementType::String) => {
             read_string(reader).map(Value::String)
         }
-        Some(ElementType::Message) => {
-            decode_message(reader).map(Value::Message)
+        Some(ElementType::Map) => {
+            decode_map(reader).map(Value::Map)
         }
         Some(ElementType::Array) => {
             decode_array(reader).map(Value::Array)
@@ -264,11 +264,11 @@ fn decode_value_with_tag(reader: &mut impl Read, tag: u8) -> DecodeResult<Value>
         Some(ElementType::TimeStamp) => {
             read_u64(reader).map(|v| Value::TimeStamp(v.into()))
         }
-        Some(ElementType::MessageId) => {
+        Some(ElementType::Id) => {
             let mut buf = [0; 12];
             reader.read_exact(&mut buf)?;
 
-            Ok(Value::MessageId(MessageId::with_bytes(buf)))
+            Ok(Value::Id(Id::with_bytes(buf)))
         }
         None => {
             Err(DecodeError::UnrecognizedElementType(tag))
@@ -297,10 +297,10 @@ impl Value {
     }
 }
 
-impl Message {
-    pub fn from_bytes(slice: &[u8]) -> DecodeResult<Message> {
+impl Map {
+    pub fn from_bytes(slice: &[u8]) -> DecodeResult<Map> {
         let mut reader = Cursor::new(slice);
-        decode_message(&mut reader)
+        decode_map(&mut reader)
     }
 }
 

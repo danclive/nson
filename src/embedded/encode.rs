@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use embedded_io::Write;
 
-use crate::core::{Value, Array, Message, Binary};
+use crate::core::{Value, Array, Map, Binary};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -120,12 +120,12 @@ pub(crate) fn encode_array<W: Write>(writer: &mut W, array: &Array) -> EncodeRes
     Ok(())
 }
 
-pub(crate) fn encode_message<W: Write>(writer: &mut W, message: &Message) -> EncodeResult<(), W::Error> {
-    let len = message.bytes_size();
+pub(crate) fn encode_map<W: Write>(writer: &mut W, map: &Map) -> EncodeResult<(), W::Error> {
+    let len = map.bytes_size();
 
     write_u32(writer, len as u32)?;
 
-    for (key, val) in message {
+    for (key, val) in map {
         write_key(writer, key)?;
 
         encode_value(writer, val)?;
@@ -148,12 +148,12 @@ pub fn encode_value<W: Write>(writer: &mut W, val: &Value) -> EncodeResult<(), W
         Value::U64(v) => write_u64(writer, v),
         Value::String(ref s) => write_string(writer, s),
         Value::Array(ref a) => encode_array(writer, a),
-        Value::Message(ref o) => encode_message(writer, o),
+        Value::Map(ref o) => encode_map(writer, o),
         Value::Bool(b) => writer.write_all(&[if b { 0x01 } else { 0x00 }]).map_err(From::from),
         Value::Null => Ok(()),
         Value::Binary(ref binary) => write_binary(writer, binary),
         Value::TimeStamp(v) => write_u64(writer, v.0),
-        Value::MessageId(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
+        Value::Id(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
     }
 }
 
@@ -165,7 +165,7 @@ impl Value {
     }
 }
 
-impl Message {
+impl Map {
     pub fn to_bytes(&self) -> EncodeResult<Vec<u8>, core::convert::Infallible> {
         let len = self.bytes_size();
 

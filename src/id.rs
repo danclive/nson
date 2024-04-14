@@ -7,21 +7,21 @@ use rand::{self, thread_rng, Rng};
 
 static COUNTER: Lazy<AtomicU16> = Lazy::new(|| AtomicU16::new(thread_rng().gen()));
 
-pub use crate::core::message_id::*;
+pub use crate::core::id::*;
 
-impl MessageId {
-    /// Generate a new MessageId
+impl Id {
+    /// Generate a new Id
     ///
     /// # Examples
     ///
     /// ```
-    /// use nson::message_id::MessageId;
+    /// use nson::id::Id;
     ///
-    /// let id = MessageId::new();
+    /// let id = Id::new();
     ///
     /// println!("{:?}", id);
     /// ```
-    pub fn new() -> MessageId {
+    pub fn new() -> Id {
         let timestamp = timestamp();
         let counter = gen_count();
         let random_bytes = random_bytes();
@@ -32,7 +32,7 @@ impl MessageId {
         bytes[6..8].copy_from_slice(&counter);
         bytes[8..].copy_from_slice(&random_bytes);
 
-        MessageId::with_bytes(bytes)
+        Id::with_bytes(bytes)
     }
 }
 

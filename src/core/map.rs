@@ -13,17 +13,17 @@ use hash32::{BuildHasherDefault, FnvHasher};
 
 use super::value::{Value, Binary, TimeStamp};
 use super::array::Array;
-use super::message_id::MessageId;
+use super::id::Id;
 
 #[cfg(feature = "std")]
 #[derive(Clone, PartialEq, Eq, Default)]
-pub struct Message {
+pub struct Map {
     inner: IndexMap<String, Value>
 }
 
 #[cfg(not(feature = "std"))]
 #[derive(Clone, PartialEq, Eq, Default)]
-pub struct Message {
+pub struct Map {
     inner: IndexMap<String, Value, BuildHasherDefault<FnvHasher>>
 }
 
@@ -36,15 +36,15 @@ pub enum Error {
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[cfg(feature = "std")]
-impl Message {
-    pub fn new() -> Message {
-        Message {
+impl Map {
+    pub fn new() -> Map {
+        Map {
             inner: IndexMap::new()
         }
     }
 
-    pub fn with_capacity(n: usize) -> Message {
-        Message {
+    pub fn with_capacity(n: usize) -> Map {
+        Map {
             inner: IndexMap::with_capacity(n)
         }
     }
@@ -52,21 +52,21 @@ impl Message {
 
 
 #[cfg(not(feature = "std"))]
-impl Message {
-    pub fn new() -> Message {
-        Message {
+impl Map {
+    pub fn new() -> Map {
+        Map {
             inner: IndexMap::with_hasher(BuildHasherDefault::new())
         }
     }
 
-    pub fn with_capacity(n: usize) -> Message {
-        Message {
+    pub fn with_capacity(n: usize) -> Map {
+        Map {
             inner: IndexMap::with_capacity_and_hasher(n, BuildHasherDefault::new())
         }
     }
 }
 
-impl Message {
+impl Map {
     pub fn capacity(&self) -> usize {
         self.inner.capacity()
     }
@@ -257,9 +257,9 @@ impl Message {
         }
     }
 
-    pub fn get_message(&self, key: &str) -> Result<&Message> {
+    pub fn get_map(&self, key: &str) -> Result<&Map> {
         match self.get(key) {
-            Some(&Value::Message(ref v)) => Ok(v),
+            Some(&Value::Map(ref v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
             None => Err(Error::NotPresent),
         }
@@ -285,9 +285,9 @@ impl Message {
         }
     }
 
-    pub fn get_message_id(&self, key: &str) -> Result<&MessageId> {
+    pub fn get_id(&self, key: &str) -> Result<&Id> {
         match self.get(key) {
-            Some(&Value::MessageId(ref v)) => Ok(v),
+            Some(&Value::Id(ref v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
             None => Err(Error::NotPresent),
         }
@@ -330,15 +330,15 @@ impl Message {
     }
 }
 
-impl fmt::Debug for Message {
+impl fmt::Debug for Map {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Message{:?}", self.inner)
+        write!(fmt, "Map{:?}", self.inner)
     }
 }
 
-impl fmt::Display for Message {
+impl fmt::Display for Map {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Message{{")?;
+        write!(fmt, "Map{{")?;
 
         let mut first = true;
         for (k, v) in self.iter() {
@@ -357,7 +357,7 @@ impl fmt::Display for Message {
     }
 }
 
-impl IntoIterator for Message {
+impl IntoIterator for Map {
     type Item = (String, Value);
     type IntoIter = IntoIter<String, Value>;
 
@@ -366,7 +366,7 @@ impl IntoIterator for Message {
     }
 }
 
-impl<'a> IntoIterator for &'a Message {
+impl<'a> IntoIterator for &'a Map {
     type Item = (&'a String, &'a Value);
     type IntoIter = Iter<'a, String, Value>;
 
@@ -375,7 +375,7 @@ impl<'a> IntoIterator for &'a Message {
     }
 }
 
-impl<'a> IntoIterator for &'a mut Message {
+impl<'a> IntoIterator for &'a mut Map {
     type Item = (&'a String, &'a mut Value);
     type IntoIter = IterMut<'a, String, Value>;
 
@@ -384,9 +384,9 @@ impl<'a> IntoIterator for &'a mut Message {
     }
 }
 
-impl FromIterator<(String, Value)> for Message {
+impl FromIterator<(String, Value)> for Map {
     fn from_iter<I: IntoIterator<Item=(String, Value)>>(iter: I) -> Self {
-        let mut msg = Message::with_capacity(8);
+        let mut msg = Map::with_capacity(8);
 
         for (k, v) in iter {
             msg.insert(k, v);
@@ -397,15 +397,15 @@ impl FromIterator<(String, Value)> for Message {
 }
 
 #[cfg(feature = "std")]
-impl From<IndexMap<String, Value>> for Message {
-    fn from(map: IndexMap<String, Value>) -> Message {
-        Message { inner: map }
+impl From<IndexMap<String, Value>> for Map {
+    fn from(map: IndexMap<String, Value>) -> Map {
+        Map { inner: map }
     }
 }
 
 #[cfg(not(feature = "std"))]
-impl From<IndexMap<String, Value, BuildHasherDefault<FnvHasher>>> for Message {
-    fn from(map: IndexMap<String, Value, BuildHasherDefault<FnvHasher>>) -> Message {
-        Message { inner: map }
+impl From<IndexMap<String, Value, BuildHasherDefault<FnvHasher>>> for Map {
+    fn from(map: IndexMap<String, Value, BuildHasherDefault<FnvHasher>>) -> Map {
+        Map { inner: map }
     }
 }
