@@ -10,7 +10,7 @@ repository    = "https://github.com/danclive/nson"
 readme        = "README.md"
 keywords      = ["nson", "serialization", "encoding"]
 categories    = ["encoding"]
-edition       = "2018"
+edition       = "2021"
 exclude       = [
   ".gitignore",
   ".travis.yml",
