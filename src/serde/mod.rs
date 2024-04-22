@@ -1,36 +1,40 @@
+//! Serde
+
 use core::fmt;
 
 use alloc::string::{String, ToString};
 
-use serde::ser::{self, Serialize};
 use serde::de::{Deserialize, Deserializer, Error};
+use serde::ser::{self, Serialize};
 
-use crate::core::Value;
-use crate::core::spec::ElementType;
+use crate::spec::ElementType;
+use crate::Value;
 
 pub mod decode;
 pub mod encode;
 
-use encode::Encoder;
 use decode::Decoder;
+use encode::Encoder;
 
 impl ser::Serialize for ElementType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: ser::Serializer
+    where
+        S: ser::Serializer,
     {
         let u = *self as u8;
         serializer.serialize_u8(u)
     }
 }
 
-impl <'de> Deserialize<'de> for ElementType {
+impl<'de> Deserialize<'de> for ElementType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let u = u8::deserialize(deserializer)?;
 
         if let Some(a) = ElementType::from(u) {
-            return Ok(a)
+            return Ok(a);
         }
 
         Err(D::Error::custom("expecting ElementType"))
@@ -38,14 +42,16 @@ impl <'de> Deserialize<'de> for ElementType {
 }
 
 pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
-    where T: Serialize
+where
+    T: Serialize,
 {
     let ser = Encoder::new();
     value.serialize(ser)
 }
 
 pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
-    where T: Deserialize<'de>
+where
+    T: Deserialize<'de>,
 {
     let de = Decoder::new(value);
     Deserialize::deserialize(de)
@@ -63,13 +69,12 @@ pub enum DecodeError {
     DuplicatedField(&'static str),
     UnknownVariant(String),
     InvalidValue(String),
-    Unknown(String)
+    Unknown(String),
 }
 
 impl fmt::Display for DecodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            // DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
             DecodeError::ExpectedField(field_type) => {
                 write!(fmt, "Expected a field of type `{}`", field_type)
             }
@@ -90,10 +95,8 @@ impl fmt::Display for DecodeError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for DecodeError {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        match *self {
-            _ => None,
-        }
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
     }
 }
 
@@ -103,7 +106,7 @@ pub type DecodeResult<T> = Result<T, DecodeError>;
 #[non_exhaustive]
 pub enum EncodeError {
     InvalidMapKeyType(Value),
-    Unknown(String)
+    Unknown(String),
 }
 
 impl fmt::Display for EncodeError {
@@ -112,17 +115,15 @@ impl fmt::Display for EncodeError {
             EncodeError::InvalidMapKeyType(ref nson) => {
                 write!(fmt, "Invalid type: {:?}", nson)
             }
-            EncodeError::Unknown(ref inner) => inner.fmt(fmt)
+            EncodeError::Unknown(ref inner) => inner.fmt(fmt),
         }
     }
 }
 
 #[cfg(feature = "std")]
 impl std::error::Error for EncodeError {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        match *self {
-            _ => None,
-        }
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
     }
 }
 

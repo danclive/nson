@@ -1,15 +1,24 @@
-use std::io::{self, Write};
-use std::fmt;
-use std::error;
-use std::{i32, i64};
+//! Encode
 
+use core::fmt;
+
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+
+#[cfg(feature = "std")]
+use std::io::{self, Write};
+
+#[cfg(not(feature = "std"))]
+use crate::io::{self, Write};
+
+#[cfg(feature = "serde")]
+use crate::serde::encode::Encoder;
+#[cfg(feature = "serde")]
 use serde::ser::Serialize;
 
-use crate::serde::encode::Encoder;
-
-use crate::value::{Value, Binary};
-use crate::map::Map;
 use crate::array::Array;
+use crate::map::Map;
+use crate::value::{Binary, Value};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -17,7 +26,8 @@ pub enum EncodeError {
     IoError(io::Error),
     InvalidKeyLen(usize, String),
     Unknown(String),
-    Serde(crate::serde::EncodeError)
+    #[cfg(feature = "serde")]
+    Serde(crate::serde::EncodeError),
 }
 
 impl From<io::Error> for EncodeError {
@@ -26,6 +36,7 @@ impl From<io::Error> for EncodeError {
     }
 }
 
+#[cfg(feature = "serde")]
 impl From<crate::serde::EncodeError> for EncodeError {
     fn from(err: crate::serde::EncodeError) -> EncodeError {
         EncodeError::Serde(err)
@@ -35,18 +46,23 @@ impl From<crate::serde::EncodeError> for EncodeError {
 impl fmt::Display for EncodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            #[cfg(feature = "std")]
             EncodeError::IoError(ref inner) => inner.fmt(fmt),
+            #[cfg(not(feature = "std"))]
+            EncodeError::IoError(ref inner) => write!(fmt, "{:?}", inner),
             EncodeError::InvalidKeyLen(ref len, ref desc) => {
                 write!(fmt, "Invalid key len: {}, {}", len, desc)
             }
             EncodeError::Unknown(ref inner) => inner.fmt(fmt),
+            #[cfg(feature = "serde")]
             EncodeError::Serde(ref inner) => inner.fmt(fmt),
         }
     }
 }
 
-impl error::Error for EncodeError {
-    fn cause(&self) -> Option<&dyn error::Error> {
+#[cfg(feature = "std")]
+impl std::error::Error for EncodeError {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
         match *self {
             EncodeError::IoError(ref inner) => Some(inner),
             _ => None,
@@ -88,7 +104,10 @@ pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
 
 pub(crate) fn write_key(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
     if s.is_empty() || s.len() >= 255 {
-        return Err(EncodeError::InvalidKeyLen(s.len(), "key len must > 0 and < 255".to_string()))
+        return Err(EncodeError::InvalidKeyLen(
+            s.len(),
+            "key len must > 0 and < 255".to_string(),
+        ));
     }
 
     writer.write_all(&[s.len() as u8 + 1])?;
@@ -151,11 +170,13 @@ pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
         Value::String(ref s) => write_string(writer, s),
         Value::Array(ref a) => encode_array(writer, a),
         Value::Map(ref o) => encode_map(writer, o),
-        Value::Bool(b) => writer.write_all(&[if b { 0x01 } else { 0x00 }]).map_err(From::from),
+        Value::Bool(b) => writer
+            .write_all(&[if b { 0x01 } else { 0x00 }])
+            .map_err(From::from),
         Value::Null => Ok(()),
         Value::Binary(ref binary) => write_binary(writer, binary),
         Value::TimeStamp(v) => write_u64(writer, v.0),
-        Value::Id(ref id) => writer.write_all(&id.bytes()).map_err(From::from)
+        Value::Id(ref id) => writer.write_all(&id.bytes()).map_err(From::from),
     }
 }
 
@@ -203,15 +224,19 @@ impl Array {
     }
 }
 
+#[cfg(feature = "serde")]
 pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
-    where T: Serialize
+where
+    T: Serialize,
 {
     let ser = Encoder::new();
     value.serialize(ser).map_err(EncodeError::Serde)
 }
 
+#[cfg(feature = "serde")]
 pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
-    where T: Serialize
+where
+    T: Serialize,
 {
     let value = to_nson(value)?;
     value.to_bytes()
@@ -219,14 +244,21 @@ pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
 
 #[cfg(test)]
 mod test {
-    use std::io::Cursor;
-    use crate::encode::encode_map;
     use crate::decode::decode_map;
+    use crate::encode::encode_map;
     use crate::m;
+
+    use alloc::vec::Vec;
+
+    #[cfg(feature = "std")]
+    use std::io::Cursor;
+
+    #[cfg(not(feature = "std"))]
+    use crate::io::Cursor;
 
     #[test]
     fn encode() {
-        let m = m!{"aa": "bb", "cc": [1, 2, 3, 4]};
+        let m = m! {"aa": "bb", "cc": [1, 2, 3, 4]};
 
         let mut buf: Vec<u8> = Vec::new();
 

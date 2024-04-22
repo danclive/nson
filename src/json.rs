@@ -1,11 +1,16 @@
-use alloc::vec::Vec;
+//! Json
+
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use serde_json::{self, json, Map};
 
-use base64::{Engine, engine::general_purpose};
+use base64::{engine::general_purpose, Engine};
 
-use crate::core::{Value, Map as NsonMap, Array, Id};
+use crate::array::Array;
+use crate::id::Id;
+use crate::map::Map as NsonMap;
+use crate::value::Value;
 
 impl From<Value> for serde_json::Value {
     fn from(value: Value) -> Self {
@@ -22,14 +27,15 @@ impl From<Value> for serde_json::Value {
                 json!(array)
             }
             Value::Map(v) => {
-                let map: Map<String, serde_json::Value> = v.into_iter().map(|(k, v)| (k, v.into())).collect();
+                let map: Map<String, serde_json::Value> =
+                    v.into_iter().map(|(k, v)| (k, v.into())).collect();
                 json!(map)
             }
             Value::Bool(v) => json!(v),
             Value::Null => json!(null),
             Value::Binary(v) => json!({"$bin": general_purpose::STANDARD.encode(v.0)}),
             Value::TimeStamp(v) => json!({"$tim": v.0}),
-            Value::Id(v) => json!({"$mid": v.to_hex()})
+            Value::Id(v) => json!({"$mid": v.to_hex()}),
         }
     }
 }
@@ -45,7 +51,7 @@ impl From<serde_json::Value> for Value {
                 } else if let Some(f) = v.as_f64() {
                     Value::F32(f as f32)
                 } else {
-                   unreachable!()
+                    unreachable!()
                 }
             }
             serde_json::Value::String(v) => v.into(),
@@ -62,7 +68,7 @@ impl From<serde_json::Value> for Value {
                         ["$tim"] => {
                             if let Some(v) = map.get("$tim") {
                                 if let Some(u) = v.as_u64() {
-                                    return Value::TimeStamp(u.into())
+                                    return Value::TimeStamp(u.into());
                                 }
                             }
                         }
@@ -70,7 +76,7 @@ impl From<serde_json::Value> for Value {
                             if let Some(v) = map.get("$bin") {
                                 if let Some(hex) = v.as_str() {
                                     if let Ok(bin) = general_purpose::STANDARD.decode(hex) {
-                                        return bin.into()
+                                        return bin.into();
                                     }
                                 }
                             }
@@ -79,7 +85,7 @@ impl From<serde_json::Value> for Value {
                             if let Some(v) = map.get("$mid") {
                                 if let Some(hex) = v.as_str() {
                                     if let Ok(message_id) = Id::with_string(hex) {
-                                        return message_id.into()
+                                        return message_id.into();
                                     }
                                 }
                             }
@@ -87,32 +93,32 @@ impl From<serde_json::Value> for Value {
                         ["$f64"] => {
                             if let Some(v) = map.get("$f64") {
                                 if let Some(f) = v.as_f64() {
-                                    return Value::F64(f)
+                                    return Value::F64(f);
                                 }
                             }
                         }
                         ["$i64"] => {
                             if let Some(v) = map.get("$i64") {
                                 if let Some(i) = v.as_i64() {
-                                    return Value::I64(i)
+                                    return Value::I64(i);
                                 }
                             }
                         }
                         ["$u32"] => {
                             if let Some(v) = map.get("$u32") {
                                 if let Some(u) = v.as_u64() {
-                                    return Value::U32(u as u32)
+                                    return Value::U32(u as u32);
                                 }
                             }
                         }
                         ["$u64"] => {
                             if let Some(v) = map.get("$u64") {
                                 if let Some(u) = v.as_u64() {
-                                    return Value::U64(u)
+                                    return Value::U64(u);
                                 }
                             }
                         }
-                        _ => ()
+                        _ => (),
                     }
                 }
 
@@ -120,7 +126,7 @@ impl From<serde_json::Value> for Value {
 
                 Value::Map(map)
             }
-            serde_json::Value::Null => Value::Null
+            serde_json::Value::Null => Value::Null,
         }
     }
 }
@@ -137,16 +143,17 @@ impl From<serde_json::Value> for NsonMap {
 
         match value {
             Value::Map(map) => map,
-            _ => NsonMap::new()
+            _ => NsonMap::new(),
         }
     }
 }
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(test)]
 mod test {
-    use crate::{msg, Value, MessageId};
-    use crate::value::TimeStamp;
+    use crate::{m, Id, TimeStamp, Value};
     use serde_json::{self, json};
+
+    use crate::__vec;
 
     #[test]
     fn convert_json() {
@@ -168,7 +175,7 @@ mod test {
             }
         });
 
-        let message = msg!{
+        let message = m! {
             "a": 1i32,
             "b": 2i64,
             "c": 3u32,
@@ -176,8 +183,8 @@ mod test {
             "e": 5.6f32,
             "f": 7.8f64,
             "g": TimeStamp(456),
-            "h": MessageId::with_string("0171253e54db9aef760d5fbd").unwrap(),
-            "i": vec![1u8, 2, 3, 4, 5, 6]
+            "h": Id::with_string("0171253e54db9aef760d5fbd").unwrap(),
+            "i": __vec![1u8, 2, 3, 4, 5, 6]
         };
 
         let nson_value: Value = message.clone().into();

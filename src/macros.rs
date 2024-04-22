@@ -29,12 +29,12 @@ macro_rules! nson {
 
     // Finished with trailing comma.
     (@array [$($elems:expr,)*]) => {
-        $crate::core::array::Array::from_vec(vec![$($elems,)*])
+        $crate::array::Array::from_vec($crate::__vec![$($elems,)*])
     };
 
     // Finished without trailing comma.
     (@array [$($elems:expr),*]) => {
-        $crate::core::array::Array::from_vec(vec![$($elems,)*])
+        $crate::array::Array::from_vec($crate::__vec![$($elems,)*])
     };
 
     // Next element is `null`.
@@ -193,29 +193,29 @@ macro_rules! nson {
     //////////////////////////////////////////////////////////////////////////
 
     (null) => {
-        $crate::core::value::Value::Null
+        $crate::value::Value::Null
     };
 
     ([]) => {
-        $crate::core::value::Value::Array(vec![].into())
+        $crate::value::Value::Array($crate::__vec![].into())
     };
 
     ([ $($tt:tt)+ ]) => {
-        $crate::core::value::Value::Array($crate::nson!(@array [] $($tt)+))
+        $crate::value::Value::Array($crate::nson!(@array [] $($tt)+))
     };
 
     ({}) => {
-        $crate::core::value::Value::Map($crate::m!{})
+        $crate::value::Value::Map($crate::m!{})
     };
 
     ({$($tt:tt)+}) => {
-        $crate::core::value::Value::Map($crate::m!{$($tt)+});
+        $crate::value::Value::Map($crate::m!{$($tt)+});
     };
 
     // Any Serialize type: numbers, strings, struct literals, variables etc.
     // Must be below every other rule.
     ($other:expr) => {
-        std::convert::From::from($other)
+        core::convert::From::from($other)
     };
 }
 
@@ -239,9 +239,9 @@ macro_rules! nson {
 /// ```
 #[macro_export]
 macro_rules! m {
-    () => {{ $crate::core::map::Map::with_capacity(8) }};
+    () => {{ $crate::map::Map::with_capacity(8) }};
     ( $($tt:tt)+ ) => {{
-        let mut object = $crate::core::map::Map::with_capacity(8);
+        let mut object = $crate::map::Map::with_capacity(8);
         $crate::nson!(@object object () ($($tt)+) ($($tt)+));
         object
     }};

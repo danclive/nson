@@ -1,16 +1,26 @@
-use std::{io, error, fmt};
-use std::io::{Read, Cursor};
-use std::string::FromUtf8Error;
+//! Decode
 
+use core::fmt;
+
+use alloc::format;
+use alloc::string::{FromUtf8Error, String};
+
+#[cfg(feature = "std")]
+use std::io::{self, Cursor, Read};
+
+#[cfg(not(feature = "std"))]
+use crate::io::{self, Cursor, Read};
+
+#[cfg(feature = "serde")]
+use crate::serde::decode::Decoder;
+#[cfg(feature = "serde")]
 use serde::de::Deserialize;
 
-use crate::serde::decode::Decoder;
-
-use crate::spec::ElementType;
-use crate::value::{Value, Binary};
-use crate::map::Map;
 use crate::array::Array;
 use crate::id::Id;
+use crate::map::Map;
+use crate::spec::ElementType;
+use crate::value::{Binary, Value};
 
 #[derive(Debug)]
 pub enum DecodeError {
@@ -19,7 +29,8 @@ pub enum DecodeError {
     UnrecognizedElementType(u8),
     InvalidLength(usize, String),
     Unknown(String),
-    Serde(crate::serde::DecodeError)
+    #[cfg(feature = "serde")]
+    Serde(crate::serde::DecodeError),
 }
 
 impl From<io::Error> for DecodeError {
@@ -34,6 +45,7 @@ impl From<FromUtf8Error> for DecodeError {
     }
 }
 
+#[cfg(feature = "serde")]
 impl From<crate::serde::DecodeError> for DecodeError {
     fn from(err: crate::serde::DecodeError) -> DecodeError {
         DecodeError::Serde(err)
@@ -43,7 +55,10 @@ impl From<crate::serde::DecodeError> for DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            #[cfg(feature = "std")]
             DecodeError::IoError(ref inner) => inner.fmt(fmt),
+            #[cfg(not(feature = "std"))]
+            DecodeError::IoError(ref inner) => write!(fmt, "{:?}", inner),
             DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
             DecodeError::UnrecognizedElementType(tag) => {
                 write!(fmt, "Unrecognized element type `{}`", tag)
@@ -52,13 +67,15 @@ impl fmt::Display for DecodeError {
                 write!(fmt, "Expecting length {}, {}", len, desc)
             }
             DecodeError::Unknown(ref inner) => inner.fmt(fmt),
+            #[cfg(feature = "serde")]
             DecodeError::Serde(ref inner) => inner.fmt(fmt),
         }
     }
 }
 
-impl error::Error for DecodeError {
-    fn cause(&self) -> Option<&dyn error::Error> {
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeError {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
         match *self {
             DecodeError::IoError(ref inner) => Some(inner),
             _ => None,
@@ -121,17 +138,25 @@ pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
     let len = read_u32(reader)?;
 
     if len < crate::MIN_NSON_SIZE - 1 {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid string length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid string length of {}", len),
+        ));
     }
 
     if len > crate::MAX_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid string length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid string length of {}", len),
+        ));
     }
 
     let len = len - 4;
 
-    let mut s = String::with_capacity(len as usize);
-    reader.take(len as u64).read_to_string(&mut s)?;
+    let mut buf = crate::__vec![0u8; len as usize];
+    reader.read_exact(&mut buf)?;
+
+    let s = String::from_utf8(buf)?;
 
     Ok(s)
 }
@@ -140,17 +165,23 @@ pub(crate) fn read_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
     let len = read_u32(reader)?;
 
     if len < crate::MIN_NSON_SIZE - 1 {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid binary length of {}", len),
+        ));
     }
 
     if len > crate::MAX_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid binary length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid binary length of {}", len),
+        ));
     }
 
     let len = len - 4;
 
-    let mut data = Vec::with_capacity(len as usize);
-    reader.take(len as u64).read_to_end(&mut data)?;
+    let mut data = crate::__vec![0u8; len as usize];
+    reader.read_exact(&mut data)?;
 
     Ok(Binary(data))
 }
@@ -161,11 +192,17 @@ pub(crate) fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     let len = read_u32(reader)?;
 
     if len < crate::MIN_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid array length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid array length of {}", len),
+        ));
     }
 
     if len > crate::MAX_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid array length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid array length of {}", len),
+        ));
     }
 
     loop {
@@ -188,11 +225,17 @@ pub(crate) fn decode_map(reader: &mut impl Read) -> DecodeResult<Map> {
     let len = read_u32(reader)?;
 
     if len < crate::MIN_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid map length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid map length of {}", len),
+        ));
     }
 
     if len > crate::MAX_NSON_SIZE {
-        return Err(DecodeError::InvalidLength(len as usize, format!("Invalid map length of {}", len)));
+        return Err(DecodeError::InvalidLength(
+            len as usize,
+            format!("Invalid map length of {}", len),
+        ));
     }
 
     loop {
@@ -204,10 +247,10 @@ pub(crate) fn decode_map(reader: &mut impl Read) -> DecodeResult<Map> {
 
             let len = len - 1;
 
-            let mut s = String::with_capacity(len as usize);
-            reader.take(len as u64).read_to_string(&mut s)?;
+            let mut buf = crate::__vec![0u8; len as usize];
+            reader.read_exact(&mut buf)?;
 
-            s
+            String::from_utf8(buf)?
         };
 
         let val = decode_value(reader)?;
@@ -225,66 +268,42 @@ pub fn decode_value(reader: &mut impl Read) -> DecodeResult<Value> {
 
 fn decode_value_with_tag(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
     match ElementType::from(tag) {
-        Some(ElementType::F32) => {
-            read_f32(reader).map(Value::F32)
-        }
-        Some(ElementType::F64) => {
-            read_f64(reader).map(Value::F64)
-        }
-        Some(ElementType::I32) => {
-            read_i32(reader).map(Value::I32)
-        }
-        Some(ElementType::I64) => {
-            read_i64(reader).map(Value::I64)
-        }
-        Some(ElementType::U32) => {
-            read_u32(reader).map(Value::U32)
-        }
-        Some(ElementType::U64) => {
-            read_u64(reader).map(Value::U64)
-        }
-        Some(ElementType::String) => {
-            read_string(reader).map(Value::String)
-        }
-        Some(ElementType::Map) => {
-            decode_map(reader).map(Value::Map)
-        }
-        Some(ElementType::Array) => {
-            decode_array(reader).map(Value::Array)
-        }
-        Some(ElementType::Binary) => {
-            read_binary(reader).map(Value::Binary)
-        }
-        Some(ElementType::Bool) => {
-            Ok(Value::Bool(read_u8(reader)? != 0))
-        }
-        Some(ElementType::Null) => {
-            Ok(Value::Null)
-        }
-        Some(ElementType::TimeStamp) => {
-            read_u64(reader).map(|v| Value::TimeStamp(v.into()))
-        }
+        Some(ElementType::F32) => read_f32(reader).map(Value::F32),
+        Some(ElementType::F64) => read_f64(reader).map(Value::F64),
+        Some(ElementType::I32) => read_i32(reader).map(Value::I32),
+        Some(ElementType::I64) => read_i64(reader).map(Value::I64),
+        Some(ElementType::U32) => read_u32(reader).map(Value::U32),
+        Some(ElementType::U64) => read_u64(reader).map(Value::U64),
+        Some(ElementType::String) => read_string(reader).map(Value::String),
+        Some(ElementType::Map) => decode_map(reader).map(Value::Map),
+        Some(ElementType::Array) => decode_array(reader).map(Value::Array),
+        Some(ElementType::Binary) => read_binary(reader).map(Value::Binary),
+        Some(ElementType::Bool) => Ok(Value::Bool(read_u8(reader)? != 0)),
+        Some(ElementType::Null) => Ok(Value::Null),
+        Some(ElementType::TimeStamp) => read_u64(reader).map(|v| Value::TimeStamp(v.into())),
         Some(ElementType::Id) => {
             let mut buf = [0; 12];
             reader.read_exact(&mut buf)?;
 
             Ok(Value::Id(Id::with_bytes(buf)))
         }
-        None => {
-            Err(DecodeError::UnrecognizedElementType(tag))
-        }
+        None => Err(DecodeError::UnrecognizedElementType(tag)),
     }
 }
 
+#[cfg(feature = "serde")]
 pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
-    where T: Deserialize<'de>
+where
+    T: Deserialize<'de>,
 {
     let de = Decoder::new(value);
     Deserialize::deserialize(de).map_err(DecodeError::Serde)
 }
 
+#[cfg(feature = "serde")]
 pub fn from_bytes<'de, T>(bytes: &[u8]) -> DecodeResult<T>
-    where T: Deserialize<'de>
+where
+    T: Deserialize<'de>,
 {
     let value = Value::from_bytes(bytes)?;
     from_nson(value)

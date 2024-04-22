@@ -11,31 +11,31 @@
 //! ```rust
 //! use nson::m;
 //!
-//! fn main() {
-//!     let mut value = m!{
-//!         "code": 200,
-//!         "success": true,
-//!         "payload": {
-//!             "some": [
-//!                 "pay",
-//!                 "loads",
-//!             ]
-//!         }
-//!     };
 //!
-//!     println!("{:?}", value);
-//!     // print: Map{"code": I32(200), "success": Bool(true), "payload":
-//!     // Map{"some": Array([String("pay"), String("loads")])}}
+//! let mut value = m!{
+//!     "code": 200,
+//!     "success": true,
+//!     "payload": {
+//!         "some": [
+//!             "pay",
+//!             "loads",
+//!         ]
+//!     }
+//! };
 //!
-//!     println!("{:?}", value.get("code"));
-//!     // print: Some(I32(200))
+//! println!("{:?}", value);
+//! // print: Map{"code": I32(200), "success": Bool(true), "payload":
+//! // Map{"some": Array([String("pay"), String("loads")])}}
 //!
-//!     // insert new key, value
-//!     value.insert("hello", "world");
+//! println!("{:?}", value.get("code"));
+//! // print: Some(I32(200))
 //!
-//!     println!("{:?}", value.get("hello"));
-//!     // print: Some(String("world"))
-//! }
+//! // insert new key, value
+//! value.insert("hello", "world");
+//!
+//! println!("{:?}", value.get("hello"));
+//! // print: Some(String("world"))
+//!
 //! ```
 //!
 
@@ -45,48 +45,48 @@
 compile_error!("nson requires that either `std` (default) or `alloc` feature is enabled");
 
 #[cfg(all(feature = "std", feature = "embedded"))]
-compile_error!("nson requires that either `std` (default) or `embedded` feature don't enabled same time");
+compile_error!(
+    "nson requires that either `std` (default) or `embedded` feature don't enabled same time"
+);
 
 extern crate alloc;
+
+#[cfg(not(feature = "std"))]
+#[doc(hidden)]
+pub use alloc::vec as __vec;
 
 #[cfg(feature = "std")]
 #[macro_use]
 extern crate std;
 
-pub mod core;
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub use std::vec as __vec;
+
 mod macros;
+
+pub mod decode;
+pub mod encode;
+
+pub use array::Array;
+pub use id::Id;
+pub use map::Map;
+pub use value::{Binary, TimeStamp, Value};
+pub mod array;
+
+pub mod id;
+pub mod map;
+pub mod spec;
+pub mod value;
 
 #[cfg(feature = "serde")]
 pub mod serde;
 
-#[cfg(feature = "std")]
-pub use value::{Value, Binary, TimeStamp};
-#[cfg(feature = "std")]
-pub use map::Map;
-#[cfg(feature = "std")]
-pub use array::Array;
-#[cfg(feature = "std")]
-pub use id::Id;
-
-#[cfg(feature = "std")]
-pub mod value;
-#[cfg(feature = "std")]
-pub mod map;
-#[cfg(feature = "std")]
-pub mod array;
-#[cfg(feature = "std")]
-pub mod id;
-#[cfg(feature = "std")]
-pub mod encode;
-#[cfg(feature = "std")]
-pub mod decode;
-#[cfg(feature = "std")]
-pub mod spec;
 #[cfg(feature = "json")]
 mod json;
 
-#[cfg(feature = "embedded")]
-pub mod embedded;
+#[cfg(not(feature = "std"))]
+pub mod io;
 
 pub const MAX_NSON_SIZE: u32 = 64 * 1024 * 1024; // 64 MB
 pub const MIN_NSON_SIZE: u32 = 4 + 1;
@@ -94,12 +94,12 @@ pub const MIN_NSON_SIZE: u32 = 4 + 1;
 #[cfg(all(test, feature = "std", feature = "serde"))]
 mod tests {
     use crate::id::Id;
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
 
-    use crate::encode::{to_nson, to_bytes};
-    use crate::decode::{from_nson, from_bytes};
+    use crate::decode::{from_bytes, from_nson};
+    use crate::encode::{to_bytes, to_nson};
     use crate::m;
-    use crate::value::{TimeStamp, Binary};
+    use crate::value::{Binary, TimeStamp};
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub struct Foo {
@@ -117,7 +117,7 @@ mod tests {
         m: NewType3,
         n: NewType4,
         o: E,
-        p: Vec<i32>
+        p: Vec<i32>,
     }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -127,7 +127,10 @@ mod tests {
     pub struct NewType2(u32, u64);
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-    pub struct NewType3 { a: i32, b: i64 }
+    pub struct NewType3 {
+        a: i32,
+        b: i64,
+    }
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct NewType4;
@@ -148,13 +151,13 @@ mod tests {
             e: vec![1, 2, 3, 4],
             t: TimeStamp(123),
             i: Id::new(),
-            j : vec![5, 6, 7, 8].into(),
+            j: vec![5, 6, 7, 8].into(),
             k: NewType(123),
             l: NewType2(456, 789),
             m: NewType3 { a: 111, b: 222 },
             n: NewType4,
             o: E::N(123),
-            p: vec![111, 222]
+            p: vec![111, 222],
         };
 
         let nson = to_nson(&foo).unwrap();
@@ -173,12 +176,12 @@ mod tests {
     #[test]
     fn binary() {
         let byte = vec![1u8, 2, 3, 4];
-        let msg = m!{"aa": "bb", "byte": byte.clone()};
+        let msg = m! {"aa": "bb", "byte": byte.clone()};
         let byte2 = msg.get_binary("byte").unwrap();
 
         assert_eq!(byte, byte2.0);
 
-        let mut msg2 = m!{"aa": "bb"};
+        let mut msg2 = m! {"aa": "bb"};
         msg2.insert("byte", byte);
 
         assert_eq!(msg, msg2);

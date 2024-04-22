@@ -1,9 +1,9 @@
 #[cfg(feature = "std")]
 fn main() {
-    use nson::core::Value;
     use nson::m;
+    use nson::Value;
 
-    let a =  Value::I32(123);
+    let a = Value::I32(123);
     println!("{:?}", a.to_bytes());
 
     let m = m! {
@@ -26,6 +26,4 @@ fn main() {
 }
 
 #[cfg(not(feature = "std"))]
-fn main() {
-
-}
+fn main() {}
