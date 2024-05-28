@@ -29,12 +29,12 @@ macro_rules! nson {
 
     // Finished with trailing comma.
     (@array [$($elems:expr,)*]) => {
-        $crate::array::Array::from_vec($crate::__vec![$($elems,)*])
+        $crate::array::Array::from_vec($crate::vec![$($elems,)*])
     };
 
     // Finished without trailing comma.
     (@array [$($elems:expr),*]) => {
-        $crate::array::Array::from_vec($crate::__vec![$($elems,)*])
+        $crate::array::Array::from_vec($crate::vec![$($elems,)*])
     };
 
     // Next element is `null`.
@@ -197,7 +197,7 @@ macro_rules! nson {
     };
 
     ([]) => {
-        $crate::value::Value::Array($crate::__vec![].into())
+        $crate::value::Value::Array($crate::vec![].into())
     };
 
     ([ $($tt:tt)+ ]) => {

@@ -153,7 +153,7 @@ pub(crate) fn read_string(reader: &mut impl Read) -> DecodeResult<String> {
 
     let len = len - 4;
 
-    let mut buf = crate::__vec![0u8; len as usize];
+    let mut buf = alloc::vec![0u8; len as usize];
     reader.read_exact(&mut buf)?;
 
     let s = String::from_utf8(buf)?;
@@ -180,7 +180,7 @@ pub(crate) fn read_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
 
     let len = len - 4;
 
-    let mut data = crate::__vec![0u8; len as usize];
+    let mut data = alloc::vec![0u8; len as usize];
     reader.read_exact(&mut data)?;
 
     Ok(Binary(data))
@@ -247,7 +247,7 @@ pub(crate) fn decode_map(reader: &mut impl Read) -> DecodeResult<Map> {
 
             let len = len - 1;
 
-            let mut buf = crate::__vec![0u8; len as usize];
+            let mut buf = alloc::vec![0u8; len as usize];
             reader.read_exact(&mut buf)?;
 
             String::from_utf8(buf)?

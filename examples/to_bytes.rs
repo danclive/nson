@@ -1,4 +1,3 @@
-#[cfg(feature = "std")]
 fn main() {
     use nson::m;
     use nson::Value;
@@ -24,6 +23,3 @@ fn main() {
     println!("{:?}", b);
     assert_eq!(a, b);
 }
-
-#[cfg(not(feature = "std"))]
-fn main() {}

@@ -44,24 +44,10 @@
 #[cfg(not(any(feature = "std", feature = "alloc")))]
 compile_error!("nson requires that either `std` (default) or `alloc` feature is enabled");
 
-#[cfg(all(feature = "std", feature = "embedded"))]
-compile_error!(
-    "nson requires that either `std` (default) or `embedded` feature don't enabled same time"
-);
-
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
 #[doc(hidden)]
-pub use alloc::vec as __vec;
-
-#[cfg(feature = "std")]
-#[macro_use]
-extern crate std;
-
-#[cfg(feature = "std")]
-#[doc(hidden)]
-pub use std::vec as __vec;
+pub use alloc::vec;
 
 mod macros;
 
