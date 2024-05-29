@@ -1,6 +1,6 @@
 [package]
 name          = "nson"
-version       = "0.14.0-rc3"
+version       = "0.14.0-rc4"
 license       = "MIT"
 authors       = ["danc <dangcheng@hotmail.com>"]
 description   = "NSON is a lightweight data-interchange format like JSON or BSON"
@@ -32,7 +32,7 @@ serde_json = { version = "1.0", default-features = false, features = ["preserve_
 base64 = { version = "0.22", default-features = false, optional = true }
 
 [features]
-default = ["alloc", "serde"]
+default = ["std", "serde"]
 
 std = [
   "alloc",

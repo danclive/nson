@@ -225,19 +225,13 @@ impl Array {
 }
 
 #[cfg(feature = "serde")]
-pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
-where
-    T: Serialize,
-{
+pub fn to_nson<T: Serialize + ?Sized>(value: &T) -> EncodeResult<Value> {
     let ser = Encoder::new();
     value.serialize(ser).map_err(EncodeError::Serde)
 }
 
 #[cfg(feature = "serde")]
-pub fn to_bytes<T: ?Sized>(value: &T) -> EncodeResult<Vec<u8>>
-where
-    T: Serialize,
-{
+pub fn to_bytes<T: Serialize + ?Sized>(value: &T) -> EncodeResult<Vec<u8>> {
     let value = to_nson(value)?;
     value.to_bytes()
 }

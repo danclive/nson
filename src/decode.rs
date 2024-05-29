@@ -292,19 +292,13 @@ fn decode_value_with_tag(reader: &mut impl Read, tag: u8) -> DecodeResult<Value>
 }
 
 #[cfg(feature = "serde")]
-pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
-where
-    T: Deserialize<'de>,
-{
+pub fn from_nson<'de, T: Deserialize<'de>>(value: Value) -> DecodeResult<T> {
     let de = Decoder::new(value);
     Deserialize::deserialize(de).map_err(DecodeError::Serde)
 }
 
 #[cfg(feature = "serde")]
-pub fn from_bytes<'de, T>(bytes: &[u8]) -> DecodeResult<T>
-where
-    T: Deserialize<'de>,
-{
+pub fn from_bytes<'de, T: Deserialize<'de>>(bytes: &[u8]) -> DecodeResult<T> {
     let value = Value::from_bytes(bytes)?;
     from_nson(value)
 }
