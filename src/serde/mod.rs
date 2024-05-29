@@ -41,18 +41,12 @@ impl<'de> Deserialize<'de> for ElementType {
     }
 }
 
-pub fn to_nson<T: ?Sized>(value: &T) -> EncodeResult<Value>
-where
-    T: Serialize,
-{
+pub fn to_nson<T: Serialize + ?Sized>(value: &T) -> EncodeResult<Value> {
     let ser = Encoder::new();
     value.serialize(ser)
 }
 
-pub fn from_nson<'de, T>(value: Value) -> DecodeResult<T>
-where
-    T: Deserialize<'de>,
-{
+pub fn from_nson<'de, T: Deserialize<'de>>(value: Value) -> DecodeResult<T> {
     let de = Decoder::new(value);
     Deserialize::deserialize(de)
 }

@@ -153,10 +153,7 @@ impl Serializer for Encoder {
     }
 
     #[inline]
-    fn serialize_some<V: ?Sized>(self, value: &V) -> EncodeResult<Value>
-    where
-        V: Serialize,
-    {
+    fn serialize_some<V: Serialize + ?Sized>(self, value: &V) -> EncodeResult<Value> {
         value.serialize(self)
     }
 
@@ -181,28 +178,22 @@ impl Serializer for Encoder {
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(
+    fn serialize_newtype_struct<T: Serialize + ?Sized>(
         self,
         _name: &'static str,
         value: &T,
-    ) -> EncodeResult<Value>
-    where
-        T: Serialize,
-    {
+    ) -> EncodeResult<Value> {
         value.serialize(self)
     }
 
     #[inline]
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T: Serialize + ?Sized>(
         self,
         _name: &'static str,
         _variant_index: u32,
         variant: &'static str,
         value: &T,
-    ) -> EncodeResult<Value>
-    where
-        T: Serialize,
-    {
+    ) -> EncodeResult<Value> {
         let mut newtype_variant = Map::new();
         newtype_variant.insert(variant, to_nson(value)?);
         Ok(Value::Map(newtype_variant))
