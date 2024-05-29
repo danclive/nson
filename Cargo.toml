@@ -22,7 +22,7 @@ exclude       = [
 indexmap = { version = "2.2", default-features = false, features = ["serde"] }
 hash32 = { version = "0.3", default-features = false, optional = true }
 rand = { version = "0.8", default-features = false }
-hex = { version = "0.4", default-features = false }
+const-hex = { version = "1.12", default-features = false }
 once_cell = { version = "1.19", default-features = false, optional = true }
 
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
@@ -39,7 +39,7 @@ std = [
   "indexmap/std",
   "rand/std",
   "rand/std_rng",
-  "hex/std",
+  "const-hex/std",
   "once_cell/std",
   "serde?/std",
   "serde_bytes?/std",
@@ -48,7 +48,7 @@ std = [
 ]
 
 alloc = [
-  "hex/alloc",
+  "const-hex/alloc",
   "once_cell/alloc",
   "hash32",
   "serde?/alloc",

@@ -45,7 +45,7 @@ impl fmt::Debug for Value {
             Value::Map(ref o) => write!(fmt, "{:?}", o),
             Value::Bool(b) => write!(fmt, "Bool({:?})", b),
             Value::Null => write!(fmt, "Null"),
-            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", hex::encode(&vec.0)),
+            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", const_hex::encode(&vec.0)),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             }
@@ -82,7 +82,7 @@ impl fmt::Display for Value {
             Value::Map(ref o) => write!(fmt, "Map({})", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
-            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", hex::encode(&vec.0)),
+            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", const_hex::encode(&vec.0)),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             }
@@ -358,7 +358,7 @@ impl Value {
         match self {
             Value::Binary(ref v) => {
                 let mut msg = Map::with_capacity(1);
-                msg.insert("$bin", hex::encode(&v.0));
+                msg.insert("$bin", const_hex::encode(&v.0));
                 msg
             }
             Value::TimeStamp(v) => {
@@ -383,7 +383,7 @@ impl Value {
             match key.as_str() {
                 "$bin" => {
                     if let Value::String(hex) = value {
-                        if let Ok(bin) = hex::decode(hex.as_bytes()) {
+                        if let Ok(bin) = const_hex::decode(hex.as_bytes()) {
                             return Value::Binary(Binary(bin));
                         }
                     }

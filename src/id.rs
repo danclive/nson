@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use core::fmt;
 use core::str::FromStr;
 
-use hex::FromHexError;
+use const_hex::FromHexError;
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct Id {
@@ -87,7 +87,7 @@ impl Id {
     /// assert_eq!(format!("{}", id), "016f9dbd9df7f7dc9c86d573")
     /// ```
     pub fn with_string(str: &str) -> Result<Id> {
-        let bytes: Vec<u8> = hex::decode(str)?;
+        let bytes: Vec<u8> = const_hex::decode(str)?;
         if bytes.len() != 12 {
             return Err(Error::ArgumentError(
                 "Provided string must be a 12-byte hexadecimal string.".to_string(),
@@ -114,7 +114,7 @@ impl Id {
 
     /// Convert this Id to a 16-byte hexadecimal string.
     pub fn to_hex(&self) -> String {
-        hex::encode(self.bytes)
+        const_hex::encode(self.bytes)
     }
 
     pub fn zero() -> Id {
