@@ -103,7 +103,7 @@ pub(crate) fn write_f64(writer: &mut impl Write, val: f64) -> EncodeResult<()> {
 }
 
 pub(crate) fn write_key(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
-    if s.is_empty() || s.len() >= 255 {
+    if s.is_empty() || s.len() >= u8::MAX as usize {
         return Err(EncodeError::InvalidKeyLen(
             s.len(),
             "key len must > 0 and < 255".to_string(),

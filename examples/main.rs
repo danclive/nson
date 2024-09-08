@@ -1,7 +1,7 @@
 use nson::m;
 
 fn main() {
-    let mut value = m!{
+    let mut value = m! {
         "code": 200,
         "success": true,
         "payload": {
