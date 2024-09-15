@@ -195,13 +195,12 @@ impl std::error::Error for Error {
 #[cfg(feature = "std")]
 mod use_std {
     use std::sync::atomic::{AtomicU16, Ordering};
+    use std::sync::LazyLock;
     use std::time::{SystemTime, UNIX_EPOCH};
-
-    use once_cell::sync::Lazy;
 
     use rand::{self, thread_rng, Rng};
 
-    static COUNTER: Lazy<AtomicU16> = Lazy::new(|| AtomicU16::new(thread_rng().gen()));
+    static COUNTER: LazyLock<AtomicU16> = LazyLock::new(|| AtomicU16::new(thread_rng().gen()));
 
     #[inline]
     pub fn timestamp() -> [u8; 8] {
