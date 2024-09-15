@@ -25,6 +25,7 @@ use crate::value::{Binary, Value};
 pub enum EncodeError {
     IoError(io::Error),
     InvalidKeyLen(usize, String),
+    InvalidValueLen(usize, String),
     Unknown(String),
     #[cfg(feature = "serde")]
     Serde(crate::serde::EncodeError),
@@ -52,6 +53,9 @@ impl fmt::Display for EncodeError {
             EncodeError::IoError(ref inner) => write!(fmt, "{:?}", inner),
             EncodeError::InvalidKeyLen(ref len, ref desc) => {
                 write!(fmt, "Invalid key len: {}, {}", len, desc)
+            }
+            EncodeError::InvalidValueLen(ref len, ref desc) => {
+                write!(fmt, "Invalid value len: {}, {}", len, desc)
             }
             EncodeError::Unknown(ref inner) => inner.fmt(fmt),
             #[cfg(feature = "serde")]
@@ -116,12 +120,26 @@ pub(crate) fn write_key(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
 }
 
 pub(crate) fn write_string(writer: &mut impl Write, s: &str) -> EncodeResult<()> {
+    if s.len() > crate::MAX_NSON_SIZE as usize - 4 {
+        return Err(EncodeError::InvalidValueLen(
+            s.len(),
+            "string len must < MAX_NSON_SIZE - 4".to_string(),
+        ));
+    }
+
     write_u32(writer, s.len() as u32 + 4)?;
     writer.write_all(s.as_bytes())?;
     Ok(())
 }
 
 pub(crate) fn write_binary(writer: &mut impl Write, binary: &Binary) -> EncodeResult<()> {
+    if binary.0.len() > crate::MAX_NSON_SIZE as usize - 4 {
+        return Err(EncodeError::InvalidValueLen(
+            binary.0.len(),
+            "binary len must < MAX_NSON_SIZE - 4".to_string(),
+        ));
+    }
+
     write_u32(writer, binary.0.len() as u32 + 4)?;
     writer.write_all(&binary.0)?;
     Ok(())
@@ -129,6 +147,13 @@ pub(crate) fn write_binary(writer: &mut impl Write, binary: &Binary) -> EncodeRe
 
 pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
     let len = array.bytes_size();
+
+    if len > crate::MAX_NSON_SIZE as usize {
+        return Err(EncodeError::InvalidValueLen(
+            len,
+            "array len must < MAX_NSON_SIZE".to_string(),
+        ));
+    }
 
     write_u32(writer, len as u32)?;
 
@@ -143,6 +168,13 @@ pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResu
 
 pub(crate) fn encode_map(writer: &mut impl Write, map: &Map) -> EncodeResult<()> {
     let len = map.bytes_size();
+
+    if len > crate::MAX_NSON_SIZE as usize {
+        return Err(EncodeError::InvalidValueLen(
+            len,
+            "map len must < MAX_NSON_SIZE".to_string(),
+        ));
+    }
 
     write_u32(writer, len as u32)?;
 
@@ -192,6 +224,13 @@ impl Map {
     pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
         let len = self.bytes_size();
 
+        if len > crate::MAX_NSON_SIZE as usize {
+            return Err(EncodeError::InvalidValueLen(
+                len,
+                "map len must < MAX_NSON_SIZE".to_string(),
+            ));
+        }
+
         let mut buf = Vec::with_capacity(len);
         write_u32(&mut buf, len as u32)?;
 
@@ -210,6 +249,13 @@ impl Map {
 impl Array {
     pub fn to_bytes(&self) -> EncodeResult<Vec<u8>> {
         let len = self.bytes_size();
+
+        if len > crate::MAX_NSON_SIZE as usize {
+            return Err(EncodeError::InvalidValueLen(
+                len,
+                "array len must < MAX_NSON_SIZE".to_string(),
+            ));
+        }
 
         let mut buf = Vec::with_capacity(len);
         write_u32(&mut buf, len as u32)?;
