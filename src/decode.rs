@@ -186,7 +186,7 @@ pub(crate) fn read_binary(reader: &mut impl Read) -> DecodeResult<Binary> {
     Ok(Binary(data))
 }
 
-pub(crate) fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
+pub fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     let mut arr = Array::new();
 
     let len = read_u32(reader)?;
@@ -218,7 +218,7 @@ pub(crate) fn decode_array(reader: &mut impl Read) -> DecodeResult<Array> {
     Ok(arr)
 }
 
-pub(crate) fn decode_map(reader: &mut impl Read) -> DecodeResult<Map> {
+pub fn decode_map(reader: &mut impl Read) -> DecodeResult<Map> {
     let mut map = Map::new();
 
     // disregard the length: using Read::take causes infinite type recursion

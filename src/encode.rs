@@ -145,7 +145,7 @@ pub(crate) fn write_binary(writer: &mut impl Write, binary: &Binary) -> EncodeRe
     Ok(())
 }
 
-pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
+pub fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResult<()> {
     let len = array.bytes_size();
 
     if len > crate::MAX_NSON_SIZE as usize {
@@ -166,7 +166,7 @@ pub(crate) fn encode_array(writer: &mut impl Write, array: &Array) -> EncodeResu
     Ok(())
 }
 
-pub(crate) fn encode_map(writer: &mut impl Write, map: &Map) -> EncodeResult<()> {
+pub fn encode_map(writer: &mut impl Write, map: &Map) -> EncodeResult<()> {
     let len = map.bytes_size();
 
     if len > crate::MAX_NSON_SIZE as usize {

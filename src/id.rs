@@ -194,13 +194,13 @@ impl std::error::Error for Error {
 
 #[cfg(feature = "std")]
 mod use_std {
-    use std::sync::atomic::{AtomicU16, Ordering};
     use std::sync::LazyLock;
+    use std::sync::atomic::{AtomicU16, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use rand::{self, thread_rng, Rng};
+    use rand::{self, Rng, rng};
 
-    static COUNTER: LazyLock<AtomicU16> = LazyLock::new(|| AtomicU16::new(thread_rng().gen()));
+    static COUNTER: LazyLock<AtomicU16> = LazyLock::new(|| AtomicU16::new(rng().random()));
 
     #[inline]
     pub fn timestamp() -> [u8; 8] {
@@ -221,7 +221,7 @@ mod use_std {
 
     #[inline]
     pub fn random_bytes() -> [u8; 4] {
-        let rand_num: u32 = thread_rng().gen();
+        let rand_num: u32 = rng().random();
 
         rand_num.to_be_bytes()
     }

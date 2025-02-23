@@ -1,7 +1,6 @@
 use core::fmt;
 use core::marker::PhantomData;
 use core::result;
-use core::{i32, u32};
 
 use alloc::format;
 use alloc::string::{String, ToString};

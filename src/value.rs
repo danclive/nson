@@ -40,16 +40,16 @@ impl fmt::Debug for Value {
             Value::I64(i) => write!(fmt, "I64({:?})", i),
             Value::U32(u) => write!(fmt, "U32({:?})", u),
             Value::U64(u) => write!(fmt, "U64({:?})", u),
-            Value::String(ref s) => write!(fmt, "String({:?})", s),
-            Value::Array(ref vec) => write!(fmt, "Array({:?})", vec),
-            Value::Map(ref o) => write!(fmt, "{:?}", o),
+            Value::String(s) => write!(fmt, "String({:?})", s),
+            Value::Array(vec) => write!(fmt, "Array({:?})", vec),
+            Value::Map(o) => write!(fmt, "{:?}", o),
             Value::Bool(b) => write!(fmt, "Bool({:?})", b),
             Value::Null => write!(fmt, "Null"),
-            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", const_hex::encode(&vec.0)),
+            Value::Binary(vec) => write!(fmt, "Binary(0x{})", const_hex::encode(&vec.0)),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             }
-            Value::Id(ref id) => write!(fmt, "Id({})", id),
+            Value::Id(id) => write!(fmt, "Id({})", id),
         }
     }
 }
@@ -63,8 +63,8 @@ impl fmt::Display for Value {
             Value::I64(i) => write!(fmt, "I64({})", i),
             Value::U32(u) => write!(fmt, "U32({})", u),
             Value::U64(u) => write!(fmt, "U64({})", u),
-            Value::String(ref s) => write!(fmt, "String({})", s),
-            Value::Array(ref vec) => {
+            Value::String(s) => write!(fmt, "String({})", s),
+            Value::Array(vec) => {
                 write!(fmt, "Array[")?;
 
                 let mut first = true;
@@ -79,14 +79,14 @@ impl fmt::Display for Value {
 
                 write!(fmt, "]")
             }
-            Value::Map(ref o) => write!(fmt, "Map({})", o),
+            Value::Map(o) => write!(fmt, "Map({})", o),
             Value::Bool(b) => write!(fmt, "{}", b),
             Value::Null => write!(fmt, "null"),
-            Value::Binary(ref vec) => write!(fmt, "Binary(0x{})", const_hex::encode(&vec.0)),
+            Value::Binary(vec) => write!(fmt, "Binary(0x{})", const_hex::encode(&vec.0)),
             Value::TimeStamp(t) => {
                 write!(fmt, "TimeStamp({})", t.0)
             }
-            Value::Id(ref id) => write!(fmt, "Id({})", id),
+            Value::Id(id) => write!(fmt, "Id({})", id),
         }
     }
 }
@@ -127,7 +127,7 @@ impl From<u64> for Value {
     }
 }
 
-impl<'a> From<&'a str> for Value {
+impl From<&str> for Value {
     fn from(s: &str) -> Value {
         Value::String(s.to_owned())
     }
@@ -142,6 +142,18 @@ impl From<String> for Value {
 impl<'a> From<&'a String> for Value {
     fn from(s: &'a String) -> Value {
         Value::String(s.to_owned())
+    }
+}
+
+impl From<Binary> for Value {
+    fn from(b: Binary) -> Value {
+        Value::Binary(b)
+    }
+}
+
+impl<'a> From<&'a Binary> for Value {
+    fn from(b: &'a Binary) -> Value {
+        Value::Binary(b.to_owned())
     }
 }
 
@@ -257,77 +269,77 @@ impl Value {
 
     pub fn as_f32(&self) -> Option<f32> {
         match self {
-            Value::F32(ref v) => Some(*v),
+            Value::F32(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_f64(&self) -> Option<f64> {
         match self {
-            Value::F64(ref v) => Some(*v),
+            Value::F64(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_i32(&self) -> Option<i32> {
         match self {
-            Value::I32(ref v) => Some(*v),
+            Value::I32(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_u32(&self) -> Option<u32> {
         match self {
-            Value::U32(ref v) => Some(*v),
+            Value::U32(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_i64(&self) -> Option<i64> {
         match self {
-            Value::I64(ref v) => Some(*v),
+            Value::I64(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_u64(&self) -> Option<u64> {
         match self {
-            Value::U64(ref v) => Some(*v),
+            Value::U64(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_str(&self) -> Option<&str> {
         match self {
-            Value::String(ref s) => Some(s),
+            Value::String(s) => Some(s),
             _ => None,
         }
     }
 
     pub fn as_array(&self) -> Option<&Array> {
         match self {
-            Value::Array(ref v) => Some(v),
+            Value::Array(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_map(&self) -> Option<&Map> {
         match self {
-            Value::Map(ref v) => Some(v),
+            Value::Map(v) => Some(v),
             _ => None,
         }
     }
 
     pub fn as_bool(&self) -> Option<bool> {
         match self {
-            Value::Bool(ref v) => Some(*v),
+            Value::Bool(v) => Some(*v),
             _ => None,
         }
     }
 
     pub fn as_id(&self) -> Option<&Id> {
         match self {
-            Value::Id(ref v) => Some(v),
+            Value::Id(v) => Some(v),
             _ => None,
         }
     }
@@ -356,7 +368,7 @@ impl Value {
     #[cfg(feature = "serde")]
     pub(crate) fn to_extended_map(&self) -> Map {
         match self {
-            Value::Binary(ref v) => {
+            Value::Binary(v) => {
                 let mut msg = Map::with_capacity(1);
                 msg.insert("$bin", const_hex::encode(&v.0));
                 msg
@@ -366,7 +378,7 @@ impl Value {
                 msg.insert("$tim", v.0);
                 msg
             }
-            Value::Id(ref v) => {
+            Value::Id(v) => {
                 let mut msg = Map::with_capacity(1);
                 msg.insert("$mid", v.to_hex());
                 msg
