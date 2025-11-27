@@ -20,7 +20,9 @@ use indexmap::IndexMap;
 pub use indexmap::map::{Drain, Entry, IntoIter, Iter, IterMut, Keys, Values, ValuesMut};
 
 #[cfg(not(feature = "std"))]
-use hash32::{BuildHasherDefault, FnvHasher};
+use core::hash::BuildHasherDefault;
+#[cfg(not(feature = "std"))]
+use hash32::FnvHasher;
 
 use super::array::Array;
 use super::id::Id;
@@ -43,6 +45,17 @@ pub enum Error {
     NotPresent,
     UnexpectedType,
 }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::NotPresent => write!(f, "Key not present"),
+            Error::UnexpectedType => write!(f, "Unexpected type"),
+        }
+    }
+}
+
+impl core::error::Error for Error {}
 
 pub type Result<T> = core::result::Result<T, Error>;
 
