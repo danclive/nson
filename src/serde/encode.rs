@@ -41,6 +41,10 @@ impl Serialize for Value {
             Value::I64(v) => serializer.serialize_i64(v),
             Value::U32(v) => serializer.serialize_u32(v),
             Value::U64(v) => serializer.serialize_u64(v),
+            Value::I8(v) => serializer.serialize_i8(v),
+            Value::U8(v) => serializer.serialize_u8(v),
+            Value::I16(v) => serializer.serialize_i16(v),
+            Value::U16(v) => serializer.serialize_u16(v),
             Value::String(ref v) => serializer.serialize_str(v),
             Value::Array(ref v) => v.serialize(serializer),
             Value::Map(ref v) => v.serialize(serializer),
@@ -83,22 +87,22 @@ impl Serializer for Encoder {
 
     #[inline]
     fn serialize_i8(self, value: i8) -> EncodeResult<Value> {
-        self.serialize_i32(i32::from(value))
+        Ok(Value::I8(value))
     }
 
     #[inline]
     fn serialize_u8(self, value: u8) -> EncodeResult<Value> {
-        self.serialize_u32(u32::from(value))
+        Ok(Value::U8(value))
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> EncodeResult<Value> {
-        self.serialize_i32(i32::from(value))
+        Ok(Value::I16(value))
     }
 
     #[inline]
     fn serialize_u16(self, value: u16) -> EncodeResult<Value> {
-        self.serialize_u32(u32::from(value))
+        Ok(Value::U16(value))
     }
 
     #[inline]

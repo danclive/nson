@@ -9,7 +9,7 @@ use core::ops::{Deref, DerefMut};
 use super::array::Array;
 use super::id::Id;
 use super::map::Map;
-use super::spec::ElementType;
+use super::spec::DataType;
 
 #[derive(Clone, PartialEq)]
 pub enum Value {
@@ -19,6 +19,10 @@ pub enum Value {
     I64(i64),
     U32(u32),
     U64(u64),
+    I8(i8),
+    U8(u8),
+    I16(i16),
+    U16(u16),
     String(String),
     Array(Array),
     Map(Map),
@@ -40,6 +44,10 @@ impl fmt::Debug for Value {
             Value::I64(i) => write!(fmt, "I64({:?})", i),
             Value::U32(u) => write!(fmt, "U32({:?})", u),
             Value::U64(u) => write!(fmt, "U64({:?})", u),
+            Value::I8(i) => write!(fmt, "I8({:?})", i),
+            Value::U8(u) => write!(fmt, "U8({:?})", u),
+            Value::I16(i) => write!(fmt, "I16({:?})", i),
+            Value::U16(u) => write!(fmt, "U16({:?})", u),
             Value::String(s) => write!(fmt, "String({:?})", s),
             Value::Array(vec) => write!(fmt, "Array({:?})", vec),
             Value::Map(o) => write!(fmt, "{:?}", o),
@@ -63,6 +71,10 @@ impl fmt::Display for Value {
             Value::I64(i) => write!(fmt, "I64({})", i),
             Value::U32(u) => write!(fmt, "U32({})", u),
             Value::U64(u) => write!(fmt, "U64({})", u),
+            Value::I8(i) => write!(fmt, "I8({})", i),
+            Value::U8(u) => write!(fmt, "U8({})", u),
+            Value::I16(i) => write!(fmt, "I16({})", i),
+            Value::U16(u) => write!(fmt, "U16({})", u),
             Value::String(s) => write!(fmt, "String({})", s),
             Value::Array(vec) => {
                 write!(fmt, "Array[")?;
@@ -124,6 +136,30 @@ impl From<u32> for Value {
 impl From<u64> for Value {
     fn from(u: u64) -> Value {
         Value::U64(u)
+    }
+}
+
+impl From<i8> for Value {
+    fn from(i: i8) -> Value {
+        Value::I8(i)
+    }
+}
+
+impl From<u8> for Value {
+    fn from(u: u8) -> Value {
+        Value::U8(u)
+    }
+}
+
+impl From<i16> for Value {
+    fn from(i: i16) -> Value {
+        Value::I16(i)
+    }
+}
+
+impl From<u16> for Value {
+    fn from(u: u16) -> Value {
+        Value::U16(u)
     }
 }
 
@@ -229,22 +265,26 @@ value_from_impls! {
 }
 
 impl Value {
-    pub fn element_type(&self) -> ElementType {
+    pub fn element_type(&self) -> DataType {
         match self {
-            Value::F32(..) => ElementType::F32,
-            Value::F64(..) => ElementType::F64,
-            Value::I32(..) => ElementType::I32,
-            Value::I64(..) => ElementType::I64,
-            Value::U32(..) => ElementType::U32,
-            Value::U64(..) => ElementType::U64,
-            Value::String(..) => ElementType::String,
-            Value::Array(..) => ElementType::Array,
-            Value::Map(..) => ElementType::Map,
-            Value::Bool(..) => ElementType::Bool,
-            Value::Null => ElementType::Null,
-            Value::Binary(..) => ElementType::Binary,
-            Value::TimeStamp(..) => ElementType::TimeStamp,
-            Value::Id(..) => ElementType::Id,
+            Value::F32(..) => DataType::F32,
+            Value::F64(..) => DataType::F64,
+            Value::I32(..) => DataType::I32,
+            Value::I64(..) => DataType::I64,
+            Value::U32(..) => DataType::U32,
+            Value::U64(..) => DataType::U64,
+            Value::I8(..) => DataType::I8,
+            Value::U8(..) => DataType::U8,
+            Value::I16(..) => DataType::I16,
+            Value::U16(..) => DataType::U16,
+            Value::String(..) => DataType::String,
+            Value::Array(..) => DataType::Array,
+            Value::Map(..) => DataType::Map,
+            Value::Bool(..) => DataType::Bool,
+            Value::Null => DataType::Null,
+            Value::Binary(..) => DataType::Binary,
+            Value::TimeStamp(..) => DataType::TimeStamp,
+            Value::Id(..) => DataType::Id,
         }
     }
 
@@ -256,6 +296,10 @@ impl Value {
             Value::I64(_) => 8,
             Value::U32(_) => 4,
             Value::U64(_) => 8,
+            Value::I8(_) => 1,
+            Value::U8(_) => 1,
+            Value::I16(_) => 2,
+            Value::U16(_) => 2,
             Value::String(s) => 4 + s.len(),
             Value::Array(a) => a.bytes_size(),
             Value::Map(m) => m.bytes_size(),
@@ -305,6 +349,34 @@ impl Value {
     pub fn as_u64(&self) -> Option<u64> {
         match self {
             Value::U64(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_i8(&self) -> Option<i8> {
+        match self {
+            Value::I8(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_u8(&self) -> Option<u8> {
+        match self {
+            Value::U8(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_i16(&self) -> Option<i16> {
+        match self {
+            Value::I16(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_u16(&self) -> Option<u16> {
+        match self {
+            Value::U16(v) => Some(*v),
             _ => None,
         }
     }
@@ -394,10 +466,10 @@ impl Value {
 
             match key.as_str() {
                 "$bin" => {
-                    if let Value::String(hex) = value {
-                        if let Ok(bin) = const_hex::decode(hex.as_bytes()) {
-                            return Value::Binary(Binary(bin));
-                        }
+                    if let Value::String(hex) = value
+                        && let Ok(bin) = const_hex::decode(hex.as_bytes())
+                    {
+                        return Value::Binary(Binary(bin));
                     }
                 }
                 "$tim" => {
@@ -406,10 +478,10 @@ impl Value {
                     }
                 }
                 "$mid" => {
-                    if let Value::String(hex) = value {
-                        if let Ok(id) = Id::with_string(hex) {
-                            return id.into();
-                        }
+                    if let Value::String(hex) = value
+                        && let Ok(id) = Id::with_string(hex)
+                    {
+                        return id.into();
                     }
                 }
                 _ => (),

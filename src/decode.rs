@@ -19,7 +19,7 @@ use serde::de::Deserialize;
 use crate::array::Array;
 use crate::id::Id;
 use crate::map::Map;
-use crate::spec::ElementType;
+use crate::spec::DataType;
 use crate::value::{Binary, Value};
 
 #[derive(Debug)]
@@ -90,6 +90,27 @@ pub(crate) fn read_u8(reader: &mut impl Read) -> DecodeResult<u8> {
     let mut buf = [0; 1];
     reader.read_exact(&mut buf)?;
     Ok(u8::from_le_bytes(buf))
+}
+
+#[inline]
+pub(crate) fn read_i8(reader: &mut impl Read) -> DecodeResult<i8> {
+    let mut buf = [0; 1];
+    reader.read_exact(&mut buf)?;
+    Ok(i8::from_le_bytes(buf))
+}
+
+#[inline]
+pub(crate) fn read_i16(reader: &mut impl Read) -> DecodeResult<i16> {
+    let mut buf = [0; 2];
+    reader.read_exact(&mut buf)?;
+    Ok(i16::from_le_bytes(buf))
+}
+
+#[inline]
+pub(crate) fn read_u16(reader: &mut impl Read) -> DecodeResult<u16> {
+    let mut buf = [0; 2];
+    reader.read_exact(&mut buf)?;
+    Ok(u16::from_le_bytes(buf))
 }
 
 #[inline]
@@ -267,21 +288,25 @@ pub fn decode_value(reader: &mut impl Read) -> DecodeResult<Value> {
 }
 
 fn decode_value_with_tag(reader: &mut impl Read, tag: u8) -> DecodeResult<Value> {
-    match ElementType::from(tag) {
-        Some(ElementType::F32) => read_f32(reader).map(Value::F32),
-        Some(ElementType::F64) => read_f64(reader).map(Value::F64),
-        Some(ElementType::I32) => read_i32(reader).map(Value::I32),
-        Some(ElementType::I64) => read_i64(reader).map(Value::I64),
-        Some(ElementType::U32) => read_u32(reader).map(Value::U32),
-        Some(ElementType::U64) => read_u64(reader).map(Value::U64),
-        Some(ElementType::String) => read_string(reader).map(Value::String),
-        Some(ElementType::Map) => decode_map(reader).map(Value::Map),
-        Some(ElementType::Array) => decode_array(reader).map(Value::Array),
-        Some(ElementType::Binary) => read_binary(reader).map(Value::Binary),
-        Some(ElementType::Bool) => Ok(Value::Bool(read_u8(reader)? != 0)),
-        Some(ElementType::Null) => Ok(Value::Null),
-        Some(ElementType::TimeStamp) => read_u64(reader).map(|v| Value::TimeStamp(v.into())),
-        Some(ElementType::Id) => {
+    match DataType::from(tag) {
+        Some(DataType::F32) => read_f32(reader).map(Value::F32),
+        Some(DataType::F64) => read_f64(reader).map(Value::F64),
+        Some(DataType::I32) => read_i32(reader).map(Value::I32),
+        Some(DataType::I64) => read_i64(reader).map(Value::I64),
+        Some(DataType::U32) => read_u32(reader).map(Value::U32),
+        Some(DataType::U64) => read_u64(reader).map(Value::U64),
+        Some(DataType::I8) => read_i8(reader).map(Value::I8),
+        Some(DataType::U8) => read_u8(reader).map(Value::U8),
+        Some(DataType::I16) => read_i16(reader).map(Value::I16),
+        Some(DataType::U16) => read_u16(reader).map(Value::U16),
+        Some(DataType::String) => read_string(reader).map(Value::String),
+        Some(DataType::Map) => decode_map(reader).map(Value::Map),
+        Some(DataType::Array) => decode_array(reader).map(Value::Array),
+        Some(DataType::Binary) => read_binary(reader).map(Value::Binary),
+        Some(DataType::Bool) => Ok(Value::Bool(crate::decode::read_u8(reader)? != 0)),
+        Some(DataType::Null) => Ok(Value::Null),
+        Some(DataType::TimeStamp) => read_u64(reader).map(|v| Value::TimeStamp(v.into())),
+        Some(DataType::Id) => {
             let mut buf = [0; 12];
             reader.read_exact(&mut buf)?;
 

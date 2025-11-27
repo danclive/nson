@@ -13,8 +13,8 @@ use std::io::{Read, Write};
 #[cfg(not(feature = "std"))]
 use crate::io::{Read, Write};
 
-use crate::decode::{decode_array, DecodeResult};
-use crate::encode::{encode_array, EncodeResult};
+use crate::decode::{DecodeResult, decode_array};
+use crate::encode::{EncodeResult, encode_array};
 
 use super::id::Id;
 use super::map::Map;
@@ -127,7 +127,7 @@ macro_rules! array_from_impls {
 }
 
 array_from_impls! {
-    f32 f64 i32 i64 u32 u64 &str String &String Array
+    f32 f64 i32 i64 u32 u64 i8 u8 i16 u16 &str String &String Array
     Map bool Vec<u8> Id
 }
 

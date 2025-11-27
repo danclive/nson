@@ -13,11 +13,11 @@ use std::io::{Read, Write};
 #[cfg(not(feature = "std"))]
 use crate::io::{Read, Write};
 
-use crate::decode::{decode_map, DecodeResult};
-use crate::encode::{encode_map, EncodeResult};
+use crate::decode::{DecodeResult, decode_map};
+use crate::encode::{EncodeResult, encode_map};
 
-pub use indexmap::map::{Drain, Entry, IntoIter, Iter, IterMut, Keys, Values, ValuesMut};
 use indexmap::IndexMap;
+pub use indexmap::map::{Drain, Entry, IntoIter, Iter, IterMut, Keys, Values, ValuesMut};
 
 #[cfg(not(feature = "std"))]
 use hash32::{BuildHasherDefault, FnvHasher};
@@ -113,7 +113,7 @@ impl Map {
         self.inner.is_empty()
     }
 
-    pub fn entry(&mut self, key: impl Into<String>) -> Entry<String, Value> {
+    pub fn entry(&'_ mut self, key: impl Into<String>) -> Entry<'_, String, Value> {
         self.inner.entry(key.into())
     }
 
@@ -190,7 +190,7 @@ impl Map {
         self.inner.sorted_by(compare)
     }
 
-    pub fn drain(&mut self, range: RangeFull) -> Drain<String, Value> {
+    pub fn drain(&'_ mut self, range: RangeFull) -> Drain<'_, String, Value> {
         self.inner.drain(range)
     }
 
@@ -202,15 +202,15 @@ impl Map {
         self.into_iter()
     }
 
-    pub fn keys(&self) -> Keys<String, Value> {
+    pub fn keys(&'_ self) -> Keys<'_, String, Value> {
         self.inner.keys()
     }
 
-    pub fn values(&self) -> Values<String, Value> {
+    pub fn values(&'_ self) -> Values<'_, String, Value> {
         self.inner.values()
     }
 
-    pub fn value_mut(&mut self) -> ValuesMut<String, Value> {
+    pub fn value_mut(&'_ mut self) -> ValuesMut<'_, String, Value> {
         self.inner.values_mut()
     }
 
@@ -257,6 +257,38 @@ impl Map {
     pub fn get_u64(&self, key: &str) -> Result<u64> {
         match self.get(key) {
             Some(&Value::U64(v)) => Ok(v),
+            Some(_) => Err(Error::UnexpectedType),
+            None => Err(Error::NotPresent),
+        }
+    }
+
+    pub fn get_i8(&self, key: &str) -> Result<i8> {
+        match self.get(key) {
+            Some(&Value::I8(v)) => Ok(v),
+            Some(_) => Err(Error::UnexpectedType),
+            None => Err(Error::NotPresent),
+        }
+    }
+
+    pub fn get_u8(&self, key: &str) -> Result<u8> {
+        match self.get(key) {
+            Some(&Value::U8(v)) => Ok(v),
+            Some(_) => Err(Error::UnexpectedType),
+            None => Err(Error::NotPresent),
+        }
+    }
+
+    pub fn get_i16(&self, key: &str) -> Result<i16> {
+        match self.get(key) {
+            Some(&Value::I16(v)) => Ok(v),
+            Some(_) => Err(Error::UnexpectedType),
+            None => Err(Error::NotPresent),
+        }
+    }
+
+    pub fn get_u16(&self, key: &str) -> Result<u16> {
+        match self.get(key) {
+            Some(&Value::U16(v)) => Ok(v),
             Some(_) => Err(Error::UnexpectedType),
             None => Err(Error::NotPresent),
         }
@@ -445,8 +477,8 @@ impl From<IndexMap<String, Value, BuildHasherDefault<FnvHasher>>> for Map {
 
 #[cfg(test)]
 mod test {
-    use crate::m;
     use crate::Map;
+    use crate::m;
 
     #[test]
     fn to_vec() {

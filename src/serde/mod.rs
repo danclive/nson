@@ -7,7 +7,7 @@ use alloc::string::{String, ToString};
 use serde::de::{Deserialize, Deserializer, Error};
 use serde::ser::{self, Serialize};
 
-use crate::spec::ElementType;
+use crate::spec::DataType;
 use crate::Value;
 
 pub mod decode;
@@ -16,7 +16,7 @@ pub mod encode;
 use decode::Decoder;
 use encode::Encoder;
 
-impl ser::Serialize for ElementType {
+impl ser::Serialize for DataType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: ser::Serializer,
@@ -26,18 +26,18 @@ impl ser::Serialize for ElementType {
     }
 }
 
-impl<'de> Deserialize<'de> for ElementType {
+impl<'de> Deserialize<'de> for DataType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let u = u8::deserialize(deserializer)?;
 
-        if let Some(a) = ElementType::from(u) {
+        if let Some(a) = DataType::from(u) {
             return Ok(a);
         }
 
-        Err(D::Error::custom("expecting ElementType"))
+        Err(D::Error::custom("expecting DataType"))
     }
 }
 

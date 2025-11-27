@@ -105,7 +105,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
     where
         E: de::Error,
     {
-        Ok(Value::I32(i32::from(value)))
+        Ok(Value::I8(value))
     }
 
     #[inline]
@@ -113,7 +113,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
     where
         E: de::Error,
     {
-        Ok(Value::U32(u32::from(value)))
+        Ok(Value::U8(value))
     }
 
     #[inline]
@@ -121,7 +121,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
     where
         E: de::Error,
     {
-        Ok(Value::I32(i32::from(value)))
+        Ok(Value::I16(value))
     }
 
     #[inline]
@@ -129,7 +129,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
     where
         E: de::Error,
     {
-        Ok(Value::U32(u32::from(value)))
+        Ok(Value::U16(value))
     }
 
     #[inline]
@@ -372,6 +372,10 @@ impl<'de> Deserializer<'de> for Decoder {
             Value::I64(v) => visitor.visit_i64(v),
             Value::U32(v) => visitor.visit_u32(v),
             Value::U64(v) => visitor.visit_u64(v),
+            Value::I8(v) => visitor.visit_i8(v),
+            Value::U8(v) => visitor.visit_u8(v),
+            Value::I16(v) => visitor.visit_i16(v),
+            Value::U16(v) => visitor.visit_u16(v),
             Value::String(v) => visitor.visit_string(v),
             Value::Array(v) => {
                 let len = v.len();

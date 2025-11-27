@@ -21,6 +21,10 @@ impl From<Value> for serde_json::Value {
             Value::I64(v) => json!({"$i64": v}),
             Value::U32(v) => json!({"$u32": v}),
             Value::U64(v) => json!({"$u64": v}),
+            Value::I8(v) => json!({"$i8": v}),
+            Value::U8(v) => json!({"$u8": v}),
+            Value::I16(v) => json!({"$i16": v}),
+            Value::U16(v) => json!({"$u16": v}),
             Value::String(v) => json!(v),
             Value::Array(v) => {
                 let array: Vec<serde_json::Value> = v.into_iter().map(|v| v.into()).collect();
@@ -115,6 +119,34 @@ impl From<serde_json::Value> for Value {
                             if let Some(v) = map.get("$u64") {
                                 if let Some(u) = v.as_u64() {
                                     return Value::U64(u);
+                                }
+                            }
+                        }
+                        ["$i8"] => {
+                            if let Some(v) = map.get("$i8") {
+                                if let Some(i) = v.as_i64() {
+                                    return Value::I8(i as i8);
+                                }
+                            }
+                        }
+                        ["$u8"] => {
+                            if let Some(v) = map.get("$u8") {
+                                if let Some(u) = v.as_u64() {
+                                    return Value::U8(u as u8);
+                                }
+                            }
+                        }
+                        ["$i16"] => {
+                            if let Some(v) = map.get("$i16") {
+                                if let Some(i) = v.as_i64() {
+                                    return Value::I16(i as i16);
+                                }
+                            }
+                        }
+                        ["$u16"] => {
+                            if let Some(v) = map.get("$u16") {
+                                if let Some(u) = v.as_u64() {
+                                    return Value::U16(u as u16);
                                 }
                             }
                         }

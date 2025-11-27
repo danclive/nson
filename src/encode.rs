@@ -77,6 +77,26 @@ impl std::error::Error for EncodeError {
 pub type EncodeResult<T> = Result<T, EncodeError>;
 
 #[inline]
+pub(crate) fn write_i8(writer: &mut impl Write, val: i8) -> EncodeResult<()> {
+    writer.write_all(&val.to_le_bytes()).map_err(From::from)
+}
+
+#[inline]
+pub(crate) fn write_u8(writer: &mut impl Write, val: u8) -> EncodeResult<()> {
+    writer.write_all(&val.to_le_bytes()).map_err(From::from)
+}
+
+#[inline]
+pub(crate) fn write_i16(writer: &mut impl Write, val: i16) -> EncodeResult<()> {
+    writer.write_all(&val.to_le_bytes()).map_err(From::from)
+}
+
+#[inline]
+pub(crate) fn write_u16(writer: &mut impl Write, val: u16) -> EncodeResult<()> {
+    writer.write_all(&val.to_le_bytes()).map_err(From::from)
+}
+
+#[inline]
 pub(crate) fn write_i32(writer: &mut impl Write, val: i32) -> EncodeResult<()> {
     writer.write_all(&val.to_le_bytes()).map_err(From::from)
 }
@@ -199,6 +219,10 @@ pub fn encode_value(writer: &mut impl Write, val: &Value) -> EncodeResult<()> {
         Value::I64(v) => write_i64(writer, v),
         Value::U32(v) => write_u32(writer, v),
         Value::U64(v) => write_u64(writer, v),
+        Value::I8(v) => write_i8(writer, v),
+        Value::U8(v) => write_u8(writer, v),
+        Value::I16(v) => write_i16(writer, v),
+        Value::U16(v) => write_u16(writer, v),
         Value::String(ref s) => write_string(writer, s),
         Value::Array(ref a) => encode_array(writer, a),
         Value::Map(ref o) => encode_map(writer, o),
