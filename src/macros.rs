@@ -221,15 +221,32 @@ macro_rules! nson {
 
 /// Construct a map::Map value.
 ///
+/// The macro automatically detects nested arrays `[...]` and maps `{...}`,
+/// so you don't need to explicitly use `a!` and `m!` for nested structures.
+///
 /// ```rust
 /// # use nson::m;
 /// #
 /// # fn main() {
+/// // Auto-detection syntax (recommended)
 /// let value = m! {
 ///     "code": 200,
 ///     "success": true,
 ///     "payload": {
 ///         "some": [
+///             "pay",
+///             "loads",
+///         ]
+///     }
+/// };
+///
+/// // Or explicit macro syntax (also works)
+/// # use nson::a;
+/// let value2 = m! {
+///     "code": 200,
+///     "success": true,
+///     "payload": m! {
+///         "some": a![
 ///             "pay",
 ///             "loads",
 ///         ]
@@ -244,5 +261,42 @@ macro_rules! m {
         let mut object = $crate::map::Map::with_capacity(8);
         $crate::nson!(@object object () ($($tt)+) ($($tt)+));
         object
+    }};
+}
+
+/// Construct an array::Array value.
+///
+/// The macro automatically detects nested arrays `[...]` and maps `{...}`,
+/// so you don't need to explicitly use `a!` and `m!` for nested structures.
+///
+/// ```rust
+/// # use nson::a;
+/// #
+/// # fn main() {
+/// // Simple arrays
+/// let value = a![1, 2, 3, 4, 5];
+/// let mixed = a!["hello", 42, true, null];
+///
+/// // Auto-detection syntax for nested structures (recommended)
+/// let nested = a![
+///     "item1",
+///     ["nested", "array"],
+///     {"key": "value"}
+/// ];
+///
+/// // Or explicit macro syntax (also works)
+/// # use nson::m;
+/// let nested2 = a![
+///     "item1",
+///     a!["nested", "array"],
+///     m!{"key": "value"}
+/// ];
+/// # }
+/// ```
+#[macro_export]
+macro_rules! a {
+    () => {{ $crate::array::Array::new() }};
+    ( $($tt:tt)+ ) => {{
+        $crate::nson!(@array [] $($tt)+)
     }};
 }

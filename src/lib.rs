@@ -9,7 +9,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use nson::m;
+//! use nson::{m, a};
 //!
 //!
 //! let mut value = m!{
@@ -35,6 +35,10 @@
 //!
 //! println!("{:?}", value.get("hello"));
 //! // print: Some(String("world"))
+//!
+//! // Using a! macro to create arrays (or use [...] auto-detection)
+//! let tags = a!["rust", "nson", "binary"];
+//! value.insert("tags", tags);
 //!
 //! ```
 //!
