@@ -8,6 +8,17 @@ pub enum Error {
     Full,
 }
 
+impl core::fmt::Display for Error {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::fmt::Result {
+        match *self {
+            Error::UnexpectedEof => write!(fmt, "unexpected end of file"),
+            Error::Full => write!(fmt, "buffer full"),
+        }
+    }
+}
+
+impl core::error::Error for Error {}
+
 pub type Result<T> = core::result::Result<T, Error>;
 
 /// Blocking reader.

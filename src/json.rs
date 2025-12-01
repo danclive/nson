@@ -3,9 +3,9 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use serde_json::{self, json, Map};
+use serde_json::{self, Map, json};
 
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 
 use crate::array::Array;
 use crate::id::Id;
@@ -70,84 +70,82 @@ impl From<serde_json::Value> for Value {
 
                     match keys.as_slice() {
                         ["$tim"] => {
-                            if let Some(v) = map.get("$tim") {
-                                if let Some(u) = v.as_u64() {
-                                    return Value::TimeStamp(u.into());
-                                }
+                            if let Some(v) = map.get("$tim")
+                                && let Some(u) = v.as_u64()
+                            {
+                                return Value::TimeStamp(u.into());
                             }
                         }
                         ["$bin"] => {
-                            if let Some(v) = map.get("$bin") {
-                                if let Some(hex) = v.as_str() {
-                                    if let Ok(bin) = general_purpose::STANDARD.decode(hex) {
-                                        return bin.into();
-                                    }
-                                }
+                            if let Some(v) = map.get("$bin")
+                                && let Some(hex) = v.as_str()
+                                && let Ok(bin) = general_purpose::STANDARD.decode(hex)
+                            {
+                                return bin.into();
                             }
                         }
                         ["$mid"] => {
-                            if let Some(v) = map.get("$mid") {
-                                if let Some(hex) = v.as_str() {
-                                    if let Ok(message_id) = Id::with_string(hex) {
-                                        return message_id.into();
-                                    }
-                                }
+                            if let Some(v) = map.get("$mid")
+                                && let Some(hex) = v.as_str()
+                                && let Ok(message_id) = Id::with_string(hex)
+                            {
+                                return message_id.into();
                             }
                         }
                         ["$f64"] => {
-                            if let Some(v) = map.get("$f64") {
-                                if let Some(f) = v.as_f64() {
-                                    return Value::F64(f);
-                                }
+                            if let Some(v) = map.get("$f64")
+                                && let Some(f) = v.as_f64()
+                            {
+                                return Value::F64(f);
                             }
                         }
                         ["$i64"] => {
-                            if let Some(v) = map.get("$i64") {
-                                if let Some(i) = v.as_i64() {
-                                    return Value::I64(i);
-                                }
+                            if let Some(v) = map.get("$i64")
+                                && let Some(i) = v.as_i64()
+                            {
+                                return Value::I64(i);
                             }
                         }
                         ["$u32"] => {
-                            if let Some(v) = map.get("$u32") {
-                                if let Some(u) = v.as_u64() {
-                                    return Value::U32(u as u32);
-                                }
+                            if let Some(v) = map.get("$u32")
+                                && let Some(u) = v.as_u64()
+                            {
+                                return Value::U32(u as u32);
                             }
                         }
                         ["$u64"] => {
-                            if let Some(v) = map.get("$u64") {
-                                if let Some(u) = v.as_u64() {
-                                    return Value::U64(u);
-                                }
+                            if let Some(v) = map.get("$u64")
+                                && let Some(u) = v.as_u64()
+                            {
+                                return Value::U64(u);
                             }
                         }
                         ["$i8"] => {
-                            if let Some(v) = map.get("$i8") {
-                                if let Some(i) = v.as_i64() {
-                                    return Value::I8(i as i8);
-                                }
+                            if let Some(v) = map.get("$i8")
+                                && let Some(i) = v.as_i64()
+                            {
+                                return Value::I8(i as i8);
                             }
                         }
                         ["$u8"] => {
-                            if let Some(v) = map.get("$u8") {
-                                if let Some(u) = v.as_u64() {
-                                    return Value::U8(u as u8);
-                                }
+                            if let Some(v) = map.get("$u8")
+                                && let Some(u) = v.as_u64()
+                            {
+                                return Value::U8(u as u8);
                             }
                         }
                         ["$i16"] => {
-                            if let Some(v) = map.get("$i16") {
-                                if let Some(i) = v.as_i64() {
-                                    return Value::I16(i as i16);
-                                }
+                            if let Some(v) = map.get("$i16")
+                                && let Some(i) = v.as_i64()
+                            {
+                                return Value::I16(i as i16);
                             }
                         }
                         ["$u16"] => {
-                            if let Some(v) = map.get("$u16") {
-                                if let Some(u) = v.as_u64() {
-                                    return Value::U16(u as u16);
-                                }
+                            if let Some(v) = map.get("$u16")
+                                && let Some(u) = v.as_u64()
+                            {
+                                return Value::U16(u as u16);
                             }
                         }
                         _ => (),
@@ -182,7 +180,7 @@ impl From<serde_json::Value> for NsonMap {
 
 #[cfg(test)]
 mod test {
-    use crate::{m, Id, TimeStamp, Value};
+    use crate::{Id, TimeStamp, Value, m};
     use serde_json::{self, json};
 
     use crate::__vec;

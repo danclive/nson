@@ -55,10 +55,7 @@ impl From<crate::serde::DecodeError> for DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            #[cfg(feature = "std")]
             DecodeError::IoError(ref inner) => inner.fmt(fmt),
-            #[cfg(not(feature = "std"))]
-            DecodeError::IoError(ref inner) => write!(fmt, "{:?}", inner),
             DecodeError::FromUtf8Error(ref inner) => inner.fmt(fmt),
             DecodeError::UnrecognizedElementType(tag) => {
                 write!(fmt, "Unrecognized element type `{}`", tag)
@@ -73,11 +70,13 @@ impl fmt::Display for DecodeError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for DecodeError {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
+impl core::error::Error for DecodeError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match *self {
             DecodeError::IoError(ref inner) => Some(inner),
+            DecodeError::FromUtf8Error(ref inner) => Some(inner),
+            #[cfg(feature = "serde")]
+            DecodeError::Serde(ref inner) => Some(inner),
             _ => None,
         }
     }

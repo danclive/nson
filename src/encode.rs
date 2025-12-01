@@ -47,10 +47,7 @@ impl From<crate::serde::EncodeError> for EncodeError {
 impl fmt::Display for EncodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            #[cfg(feature = "std")]
             EncodeError::IoError(ref inner) => inner.fmt(fmt),
-            #[cfg(not(feature = "std"))]
-            EncodeError::IoError(ref inner) => write!(fmt, "{:?}", inner),
             EncodeError::InvalidKeyLen(ref len, ref desc) => {
                 write!(fmt, "Invalid key len: {}, {}", len, desc)
             }
@@ -64,11 +61,12 @@ impl fmt::Display for EncodeError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for EncodeError {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
+impl core::error::Error for EncodeError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match *self {
             EncodeError::IoError(ref inner) => Some(inner),
+            #[cfg(feature = "serde")]
+            EncodeError::Serde(ref inner) => Some(inner),
             _ => None,
         }
     }

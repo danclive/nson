@@ -7,8 +7,8 @@ use alloc::string::{String, ToString};
 use serde::de::{Deserialize, Deserializer, Error};
 use serde::ser::{self, Serialize};
 
-use crate::spec::DataType;
 use crate::Value;
+use crate::spec::DataType;
 
 pub mod decode;
 pub mod encode;
@@ -87,9 +87,8 @@ impl fmt::Display for DecodeError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for DecodeError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for DecodeError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         None
     }
 }
@@ -114,9 +113,8 @@ impl fmt::Display for EncodeError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for EncodeError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for EncodeError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         None
     }
 }
