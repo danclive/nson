@@ -1,7 +1,7 @@
 # nson
 
 [![crates.io](https://img.shields.io/crates/v/nson.svg)](https://crates.io/crates/nson)
-[![docs.rs](https://docs.rs/mongodb/badge.svg)](https://docs.rs/nson)
+[![docs.rs](https://docs.rs/nson/badge.svg)](https://docs.rs/nson)
 [![crates.io](https://img.shields.io/crates/l/nson.svg)](https://crates.io/crates/nson)
 
 NSON is short for **Network Serialization Object Notation**, a binary encoded serialization of JSON-like documents. Similar to JSON, NSON supports embedding maps and arrays within other maps and arrays. Unlike JSON, NSON also includes comprehensive integer types (i8/u8, i16/u16, i32/u32, i64/u64), floating-point types (f32/f64), binary, timestamp, and id types.

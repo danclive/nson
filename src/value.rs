@@ -388,6 +388,13 @@ impl Value {
         }
     }
 
+    pub fn as_str_mut(&mut self) -> Option<&mut String> {
+        match self {
+            Value::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
     pub fn as_array(&self) -> Option<&Array> {
         match self {
             Value::Array(v) => Some(v),
@@ -395,7 +402,21 @@ impl Value {
         }
     }
 
+    pub fn as_array_mut(&mut self) -> Option<&mut Array> {
+        match self {
+            Value::Array(v) => Some(v),
+            _ => None,
+        }
+    }
+
     pub fn as_map(&self) -> Option<&Map> {
+        match self {
+            Value::Map(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_map_mut(&mut self) -> Option<&mut Map> {
         match self {
             Value::Map(v) => Some(v),
             _ => None,
@@ -431,6 +452,13 @@ impl Value {
     }
 
     pub fn as_binary(&self) -> Option<&Binary> {
+        match self {
+            Value::Binary(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    pub fn as_binary_mut(&mut self) -> Option<&mut Binary> {
         match self {
             Value::Binary(b) => Some(b),
             _ => None,

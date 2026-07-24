@@ -183,7 +183,7 @@ mod test {
     use crate::{Id, TimeStamp, Value, m};
     use serde_json::{self, json};
 
-    use crate::__vec;
+    use crate::vec;
 
     #[test]
     fn convert_json() {
@@ -214,7 +214,7 @@ mod test {
             "f": 7.8f64,
             "g": TimeStamp(456),
             "h": Id::with_string("0171253e54db9aef760d5fbd").unwrap(),
-            "i": __vec![1u8, 2, 3, 4, 5, 6]
+            "i": vec![1u8, 2, 3, 4, 5, 6]
         };
 
         let nson_value: Value = message.clone().into();

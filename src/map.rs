@@ -143,7 +143,7 @@ impl Map {
     }
 
     pub fn insert(&mut self, key: impl Into<String>, value: impl Into<Value>) -> Option<Value> {
-        self.insert_value(key.into(), value.into())
+        self.insert_value(key, value.into())
     }
 
     pub fn insert_full(
@@ -151,7 +151,7 @@ impl Map {
         key: impl Into<String>,
         value: impl Into<Value>,
     ) -> (usize, Option<Value>) {
-        self.insert_value_full(key.into(), value.into())
+        self.insert_value_full(key, value.into())
     }
 
     pub fn remove(&mut self, key: &str) -> Option<Value> {
@@ -223,7 +223,7 @@ impl Map {
         self.inner.values()
     }
 
-    pub fn value_mut(&'_ mut self) -> ValuesMut<'_, String, Value> {
+    pub fn values_mut(&'_ mut self) -> ValuesMut<'_, String, Value> {
         self.inner.values_mut()
     }
 
@@ -359,9 +359,9 @@ impl Map {
         }
     }
 
-    pub fn get_timestamp(&self, key: &str) -> Result<&TimeStamp> {
+    pub fn get_timestamp(&self, key: &str) -> Result<TimeStamp> {
         match self.get(key) {
-            Some(Value::TimeStamp(v)) => Ok(v),
+            Some(Value::TimeStamp(v)) => Ok(v.to_owned()),
             Some(_) => Err(Error::UnexpectedType),
             None => Err(Error::NotPresent),
         }

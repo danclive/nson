@@ -209,7 +209,7 @@ macro_rules! nson {
     };
 
     ({$($tt:tt)+}) => {
-        $crate::value::Value::Map($crate::m!{$($tt)+});
+        $crate::value::Value::Map($crate::m!{$($tt)+})
     };
 
     // Any Serialize type: numbers, strings, struct literals, variables etc.

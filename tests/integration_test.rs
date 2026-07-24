@@ -22,7 +22,7 @@ fn test_complete_encode_decode() {
         "l": Value::Null,
         "m": vec![1u8, 2, 3, 4, 5, 6],
         "n": TimeStamp(12345),
-        "p": mid.clone(),
+        "p": mid,
         // 新类型
         "q": 10i8,
         "r": 200u8,
@@ -43,9 +43,9 @@ fn test_complete_encode_decode() {
     assert_eq!(decoded.get_u32("g").unwrap(), 3);
     assert_eq!(decoded.get_u64("h").unwrap(), 4);
     assert_eq!(decoded.get_str("i").unwrap(), "aaa");
-    assert_eq!(decoded.get_bool("k").unwrap(), false);
+    assert!(!decoded.get_bool("k").unwrap());
     assert!(decoded.is_null("l"));
-    assert_eq!(decoded.get_timestamp("n").unwrap(), &TimeStamp(12345));
+    assert_eq!(decoded.get_timestamp("n").unwrap(), TimeStamp(12345));
     assert_eq!(decoded.get_id("p").unwrap(), &mid);
     // 新类型
     assert_eq!(decoded.get_i8("q").unwrap(), 10);
@@ -113,7 +113,7 @@ fn test_large_dataset() {
     let key_500 = decoded.get_map("key_500").unwrap();
     assert_eq!(key_500.get_u16("index").unwrap(), 500);
     assert_eq!(key_500.get_i16("value").unwrap(), 1000);
-    assert_eq!(key_500.get_bool("flag").unwrap(), true);
+    assert!(key_500.get_bool("flag").unwrap());
 }
 
 #[test]
@@ -144,8 +144,8 @@ fn test_all_types_in_array() {
         Value::U32(4294967295),
         Value::I64(-9223372036854775808),
         Value::U64(18446744073709551615),
-        Value::F32(3.14),
-        Value::F64(2.718),
+        Value::F32(core::f32::consts::PI),
+        Value::F64(core::f64::consts::E),
         Value::from("string"),
         Value::Bool(true),
         Value::Null,
